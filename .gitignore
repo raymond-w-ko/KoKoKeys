@@ -1,0 +1,9 @@
+Debug/
+ipch/
+Release/
+*.sdf
+*.suo
+KoKoKeys32/Debug/
+KoKoKeys32/Release/
+KoKoKeysInjector32/Debug/
+KoKoKeysInjector32/Release/

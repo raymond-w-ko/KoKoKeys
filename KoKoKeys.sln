@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KoKoKeys32", "KoKoKeys32\KoKoKeys32.vcxproj", "{29072AE6-44B3-450F-B1B9-18B6913D3844}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KoKoKeysInjector32", "KoKoKeysInjector32\KoKoKeysInjector32.vcxproj", "{DAD864FF-B868-4BB5-A50A-99156E6E4306}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Mixed Platforms = Debug|Mixed Platforms
+		Debug|Win32 = Debug|Win32
+		Debug|x64 = Debug|x64
+		Release|Mixed Platforms = Release|Mixed Platforms
+		Release|Win32 = Release|Win32
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{29072AE6-44B3-450F-B1B9-18B6913D3844}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{29072AE6-44B3-450F-B1B9-18B6913D3844}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{29072AE6-44B3-450F-B1B9-18B6913D3844}.Debug|Win32.ActiveCfg = Debug|Win32
+		{29072AE6-44B3-450F-B1B9-18B6913D3844}.Debug|Win32.Build.0 = Debug|Win32
+		{29072AE6-44B3-450F-B1B9-18B6913D3844}.Debug|x64.ActiveCfg = Debug|Win32
+		{29072AE6-44B3-450F-B1B9-18B6913D3844}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{29072AE6-44B3-450F-B1B9-18B6913D3844}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{29072AE6-44B3-450F-B1B9-18B6913D3844}.Release|Win32.ActiveCfg = Release|Win32
+		{29072AE6-44B3-450F-B1B9-18B6913D3844}.Release|Win32.Build.0 = Release|Win32
+		{29072AE6-44B3-450F-B1B9-18B6913D3844}.Release|x64.ActiveCfg = Release|Win32
+		{DAD864FF-B868-4BB5-A50A-99156E6E4306}.Debug|Mixed Platforms.ActiveCfg = Debug|Win32
+		{DAD864FF-B868-4BB5-A50A-99156E6E4306}.Debug|Mixed Platforms.Build.0 = Debug|Win32
+		{DAD864FF-B868-4BB5-A50A-99156E6E4306}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DAD864FF-B868-4BB5-A50A-99156E6E4306}.Debug|Win32.Build.0 = Debug|Win32
+		{DAD864FF-B868-4BB5-A50A-99156E6E4306}.Debug|x64.ActiveCfg = Debug|Win32
+		{DAD864FF-B868-4BB5-A50A-99156E6E4306}.Release|Mixed Platforms.ActiveCfg = Release|Win32
+		{DAD864FF-B868-4BB5-A50A-99156E6E4306}.Release|Mixed Platforms.Build.0 = Release|Win32
+		{DAD864FF-B868-4BB5-A50A-99156E6E4306}.Release|Win32.ActiveCfg = Release|Win32
+		{DAD864FF-B868-4BB5-A50A-99156E6E4306}.Release|Win32.Build.0 = Release|Win32
+		{DAD864FF-B868-4BB5-A50A-99156E6E4306}.Release|x64.ActiveCfg = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
