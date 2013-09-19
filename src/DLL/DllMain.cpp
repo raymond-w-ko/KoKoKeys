@@ -12,6 +12,7 @@ static HINSTANCE sHinst;
 static UINT sLControlScancode;
 static UINT sLshiftScancode;
 static UINT sBScancode;
+static UINT sKScancode;
 static UINT sEscapeScancode;
 static UINT sHyphenScancode;
 
@@ -52,6 +53,17 @@ static void InjectKeybdEvent(BYTE bVk, BYTE bScan, DWORD dwFlags, ULONG_PTR dwEx
   keybd_event(bVk, bScan, dwFlags, dwExtraInfo);
   _install();
 }
+
+static POINT GetAbsoluteScreenCoordinates(int x, int y) {
+  POINT p;
+  p.x = static_cast<int>((65536.0 / GetSystemMetrics(SM_CXSCREEN)));
+  p.y = static_cast<int>((65536.0 / GetSystemMetrics(SM_CYSCREEN)));
+  return p;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Hook Function
+////////////////////////////////////////////////////////////////////////////////
 
 static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lParam) {
   // specified by Win32 documentation that you must do this if code is < 0;
@@ -221,9 +233,11 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
       SetForegroundWindow(syrefresh);
       SetWindowPos(syrefresh, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
       INPUT click;
+      POINT p;
       click.type = INPUT_MOUSE;
-      click.mi.dx = 230 * (65536.0 / GetSystemMetrics(SM_CXSCREEN));
-      click.mi.dy = 418 * (65536.0 / GetSystemMetrics(SM_CYSCREEN));
+      p = GetAbsoluteScreenCoordinates(230, 418);
+      click.mi.dx = p.x;
+      click.mi.dy = p.y;
       click.mi.mouseData = 0;
       click.mi.time = 0;
       click.mi.dwExtraInfo = 0;
@@ -237,8 +251,9 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
       click.mi.dwFlags = MOUSEEVENTF_LEFTUP;
       SendInput(1, &click, sizeof(click));
 
-      click.mi.dx = cursor_pos.x * (65536.0 / GetSystemMetrics(SM_CXSCREEN));
-      click.mi.dy = cursor_pos.y * (65536.0 / GetSystemMetrics(SM_CYSCREEN));
+      p = GetAbsoluteScreenCoordinates(cursor_pos.x, cursor_pos.y);
+      click.mi.dx = p.x;
+      click.mi.dy = p.y;
       click.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
       SendInput(1, &click, sizeof(click));
 
@@ -252,6 +267,11 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
                     NULL, NULL,
                     SW_MINIMIZE);
       return 1;
+    }
+  } else if (key_info->vkCode == VK_ESCAPE) {
+    if (foreground_win_class == "Sy_ALIVE3_Resource" ||
+        foreground_win_class == "Sy_ALIVE4_Resource") {
+      PostMessage(foreground_hwnd, WM_QUIT, 0, 0);
     }
   }
 
@@ -272,6 +292,7 @@ void _uninstall() {
 KOKOKEYSDLL_API int install(void) {
   sLControlScancode = MapVirtualKey(VK_LCONTROL, MAPVK_VK_TO_VSC);
   sBScancode = MapVirtualKey('B', MAPVK_VK_TO_VSC);
+  sKScancode = MapVirtualKey('K', MAPVK_VK_TO_VSC);
   sLshiftScancode = MapVirtualKey(VK_LSHIFT, MAPVK_VK_TO_VSC);
   sEscapeScancode = MapVirtualKey(VK_ESCAPE, MAPVK_VK_TO_VSC);
   sHyphenScancode = MapVirtualKey(VK_OEM_MINUS, MAPVK_VK_TO_VSC);

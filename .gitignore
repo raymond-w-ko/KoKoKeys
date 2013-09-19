@@ -3,6 +3,7 @@ ipch/
 Release/
 *.sdf
 *.suo
+*.opensdf
 KoKoKeys32/Debug/
 KoKoKeys32/Release/
 KoKoKeysInjector32/Debug/
