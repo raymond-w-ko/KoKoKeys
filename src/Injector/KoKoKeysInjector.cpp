@@ -202,6 +202,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case WM_LBUTTONUP:
               RestoreWindowFromTray();
               break;
+            case WM_RBUTTONUP:
+              PostMessage(sMainHwnd, WM_QUIT, 0, 0);
+              break;
           }
           break;
         }
