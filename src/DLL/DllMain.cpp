@@ -56,8 +56,8 @@ static void InjectKeybdEvent(BYTE bVk, BYTE bScan, DWORD dwFlags, ULONG_PTR dwEx
 
 static POINT GetAbsoluteScreenCoordinates(int x, int y) {
   POINT p;
-  p.x = static_cast<int>((65536.0 / GetSystemMetrics(SM_CXSCREEN)));
-  p.y = static_cast<int>((65536.0 / GetSystemMetrics(SM_CYSCREEN)));
+  p.x = static_cast<int>(x * (65536.0 / GetSystemMetrics(SM_CXSCREEN)));
+  p.y = static_cast<int>(y * (65536.0 / GetSystemMetrics(SM_CYSCREEN)));
   return p;
 }
 
