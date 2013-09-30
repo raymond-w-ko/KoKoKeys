@@ -103,11 +103,11 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
           sCapsLockDown = true;
         }
 
-        InjectKeybdEvent(VK_LCONTROL, sLControlScancode, KEYEVENTF_EXTENDEDKEY | 0, 0);
+        InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0, 0);
         break;
       case WM_KEYUP:
         InjectKeybdEvent(VK_LCONTROL, sLControlScancode,
-                         KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+                         KEYEVENTF_KEYUP, 0);
 
         ULONGLONG current_tick = GetTickCount64();
         ULONGLONG delta = current_tick - sLastCapsLockDownTime;
@@ -115,9 +115,9 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
             sCtrlTapEqualsEsc.find(foreground_win_class) != sCtrlTapEqualsEsc.end();
         if (delta < 500 && !sAbortCapsLockConversion && in_group) {
           InjectKeybdEvent(VK_ESCAPE, sEscapeScancode,
-                           0 | 0, 0);
+                           0, 0);
           InjectKeybdEvent(VK_ESCAPE, sEscapeScancode,
-                           0 | KEYEVENTF_KEYUP, 0);
+                           KEYEVENTF_KEYUP, 0);
         }
         sCapsLockDown = false;
         break;
@@ -140,12 +140,12 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
         ULONGLONG delta = current_tick - sLastLShiftDownTime;
         if (delta < 500 && !sAbortLShiftConversion) {
           InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode,
-                           0 | 0, 0);
+                           0, 0);
           InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode,
-                           0 | KEYEVENTF_KEYUP, 0);
+                           KEYEVENTF_KEYUP, 0);
         }
         InjectKeybdEvent(VK_LSHIFT, sLShiftScancode,
-                         0 | KEYEVENTF_KEYUP, 0);
+                         KEYEVENTF_KEYUP, 0);
 
         sLShiftDown = false;
         // always swallow
