@@ -93,96 +93,130 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
       sAbortLShiftConversion = true;
   }
 
-  if (key_info->vkCode == VK_CAPITAL) {
-    switch (wParam) {
-      case WM_KEYDOWN:
-        // this guard is to prevent key repeat from resetting the time
-        if (!sCapsLockDown) {
-          sLastCapsLockDownTime = GetTickCount64();
-          sAbortCapsLockConversion = false;
-          sCapsLockDown = true;
-        }
+  switch (key_info->vkCode) {
+    case VK_CAPITAL:
+      switch (wParam) {
+        case WM_KEYDOWN:
+          // this guard is to prevent key repeat from resetting the time
+          if (!sCapsLockDown) {
+            sLastCapsLockDownTime = GetTickCount64();
+            sAbortCapsLockConversion = false;
+            sCapsLockDown = true;
+          }
 
-        InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0, 0);
-        break;
-      case WM_KEYUP:
-        InjectKeybdEvent(VK_LCONTROL, sLControlScancode,
-                         KEYEVENTF_KEYUP, 0);
-
-        ULONGLONG current_tick = GetTickCount64();
-        ULONGLONG delta = current_tick - sLastCapsLockDownTime;
-        bool in_group =
-            sCtrlTapEqualsEsc.find(foreground_win_class) != sCtrlTapEqualsEsc.end();
-        if (delta < 500 && !sAbortCapsLockConversion && in_group) {
-          InjectKeybdEvent(VK_ESCAPE, sEscapeScancode,
-                           0, 0);
-          InjectKeybdEvent(VK_ESCAPE, sEscapeScancode,
+          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0, 0);
+          break;
+        case WM_KEYUP:
+          InjectKeybdEvent(VK_LCONTROL, sLControlScancode,
                            KEYEVENTF_KEYUP, 0);
-        }
-        sCapsLockDown = false;
-        break;
-    }
 
-    // always swallow CAPS LOCK
-    return 1;
-  } else if (key_info->vkCode == VK_LSHIFT) {
-    switch (wParam) {
-      case WM_KEYDOWN:
-        // this guard is to prevent key repeat from resetting the time
-        if (!sLShiftDown) {
-          sLastLShiftDownTime = GetTickCount64();
-          sAbortLShiftConversion = false;
-          sLShiftDown = true;
-        }
-        break;
-      case WM_KEYUP:
-        ULONGLONG current_tick = GetTickCount64();
-        ULONGLONG delta = current_tick - sLastLShiftDownTime;
-        if (delta < 500 && !sAbortLShiftConversion) {
-          InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode,
-                           0, 0);
-          InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode,
-                           KEYEVENTF_KEYUP, 0);
-        }
-        InjectKeybdEvent(VK_LSHIFT, sLShiftScancode,
-                         KEYEVENTF_KEYUP, 0);
+          ULONGLONG current_tick = GetTickCount64();
+          ULONGLONG delta = current_tick - sLastCapsLockDownTime;
+          bool in_group =
+              sCtrlTapEqualsEsc.find(foreground_win_class) != sCtrlTapEqualsEsc.end();
+          if (delta < 500 && !sAbortCapsLockConversion && in_group) {
+            InjectKeybdEvent(VK_ESCAPE, sEscapeScancode,
+                             0, 0);
+            InjectKeybdEvent(VK_ESCAPE, sEscapeScancode,
+                             KEYEVENTF_KEYUP, 0);
+          }
+          sCapsLockDown = false;
+          break;
+      }
 
-        sLShiftDown = false;
-        // always swallow
+      // always swallow CAPS LOCK
+      return 1;
+
+      break;
+    case VK_LSHIFT:
+      switch (wParam) {
+        case WM_KEYDOWN:
+          // this guard is to prevent key repeat from resetting the time
+          if (!sLShiftDown) {
+            sLastLShiftDownTime = GetTickCount64();
+            sAbortLShiftConversion = false;
+            sLShiftDown = true;
+          }
+          InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0, 0);
+          break;
+        case WM_KEYUP:
+          ULONGLONG current_tick = GetTickCount64();
+          ULONGLONG delta = current_tick - sLastLShiftDownTime;
+          if (delta < 500 && !sAbortLShiftConversion) {
+            InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode,
+                             0, 0);
+            InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode,
+                             KEYEVENTF_KEYUP, 0);
+          }
+          InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP, 0);
+
+          sLShiftDown = false;
+          break;
+      }
+
+      // always swallow
+      return 1;
+
+      break;
+    case VK_F1:
+      if (wParam == WM_KEYDOWN &&
+          sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
+        if (foreground_win_title.find("Microsoft Visual Studio") != std::string::npos) {
+          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0, 0);
+          InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0, 0);
+          InjectKeybdEvent('B', sBScancode, 0, 0);
+
+          InjectKeybdEvent('B', sBScancode, KEYEVENTF_KEYUP, 0);
+          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, KEYEVENTF_KEYUP, 0);
+          InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP, 0);
+        } else {
+          STARTUPINFOA startup_info;
+          PROCESS_INFORMATION process_info;
+          memset(&startup_info, 0, sizeof(startup_info));
+          startup_info.cb = sizeof(startup_info);
+
+          std::string exe;
+          if (FileExists("C:/Program Files (x86)/Vim/vim73/gvim.exe"))
+            exe = "C:/Program Files (x86)/Vim/vim73/gvim.exe";
+          if (FileExists("C:/Program Files/Vim/vim73/gvim.exe"))
+            exe = "C:/Program Files/Vim/vim73/gvim.exe";
+
+          std::string working_dir;
+          if (DirectoryExists("C:/cygwin/home/root"))
+            working_dir = "C:/cygwin/home/root";
+          if (DirectoryExists("C:/cygwin/home/rko"))
+            working_dir = "C:/cygwin/home/rko";
+
+          CreateProcessA(
+              exe.c_str(),
+              NULL,
+              NULL,
+              NULL,
+              FALSE,
+              CREATE_DEFAULT_ERROR_MODE,
+              0,
+              working_dir.c_str(),
+              &startup_info,
+              &process_info);
+        }
+
         return 1;
-        break;
-    }
-  } else if (key_info->vkCode == VK_F1) {
-    if (wParam == WM_KEYDOWN &&
-        sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
-      if (foreground_win_title.find("Microsoft Visual Studio") != std::string::npos) {
-        InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0, 0);
-        InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0, 0);
-        InjectKeybdEvent('B', sBScancode, 0, 0);
-
-        InjectKeybdEvent('B', sBScancode, KEYEVENTF_KEYUP, 0);
-        InjectKeybdEvent(VK_LCONTROL, sLControlScancode, KEYEVENTF_KEYUP, 0);
-        InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP, 0);
-      } else {
+      }
+      break;
+    case VK_F2:
+      if (wParam == WM_KEYDOWN &&
+          sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
         STARTUPINFOA startup_info;
         PROCESS_INFORMATION process_info;
         memset(&startup_info, 0, sizeof(startup_info));
         startup_info.cb = sizeof(startup_info);
-
-        std::string exe;
-        if (FileExists("C:/Program Files (x86)/Vim/vim73/gvim.exe"))
-          exe = "C:/Program Files (x86)/Vim/vim73/gvim.exe";
-        if (FileExists("C:/Program Files/Vim/vim73/gvim.exe"))
-          exe = "C:/Program Files/Vim/vim73/gvim.exe";
-
         std::string working_dir;
         if (DirectoryExists("C:/cygwin/home/root"))
           working_dir = "C:/cygwin/home/root";
         if (DirectoryExists("C:/cygwin/home/rko"))
           working_dir = "C:/cygwin/home/rko";
-
         CreateProcessA(
-            exe.c_str(),
+            "C:/cygwin/bin/mintty.exe",
             NULL,
             NULL,
             NULL,
@@ -192,87 +226,69 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
             working_dir.c_str(),
             &startup_info,
             &process_info);
+
+        return 1;
       }
 
-      return 1;
-    }
-  } else if (key_info->vkCode == VK_F2) {
-    if (wParam == WM_KEYDOWN &&
-        sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
-      STARTUPINFOA startup_info;
-      PROCESS_INFORMATION process_info;
-      memset(&startup_info, 0, sizeof(startup_info));
-      startup_info.cb = sizeof(startup_info);
-      std::string working_dir;
-      if (DirectoryExists("C:/cygwin/home/root"))
-        working_dir = "C:/cygwin/home/root";
-      if (DirectoryExists("C:/cygwin/home/rko"))
-        working_dir = "C:/cygwin/home/rko";
-      CreateProcessA(
-          "C:/cygwin/bin/mintty.exe",
-          NULL,
-          NULL,
-          NULL,
-          FALSE,
-          CREATE_DEFAULT_ERROR_MODE,
-          0,
-          working_dir.c_str(),
-          &startup_info,
-          &process_info);
+      break;
+    case VK_F3:
+      if (wParam == WM_KEYDOWN &&
+          sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
+        HWND syrefresh = FindWindowA(NULL, "SyRefresh 4");
+        if (!syrefresh)
+          return 1;
+        POINT cursor_pos;
+        GetCursorPos(&cursor_pos);
+        SetForegroundWindow(syrefresh);
+        SetWindowPos(syrefresh, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
+        INPUT click;
+        POINT p;
+        click.type = INPUT_MOUSE;
+        p = GetAbsoluteScreenCoordinates(230, 418);
+        click.mi.dx = p.x;
+        click.mi.dy = p.y;
+        click.mi.mouseData = 0;
+        click.mi.time = 0;
+        click.mi.dwExtraInfo = 0;
 
-      return 1;
-    }
-  } else if (key_info->vkCode == VK_F3) {
-    if (wParam == WM_KEYDOWN &&
-        sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
-      HWND syrefresh = FindWindowA(NULL, "SyRefresh 4");
-      if (!syrefresh)
+        click.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
+        SendInput(1, &click, sizeof(click));
+
+        click.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+        SendInput(1, &click, sizeof(click));
+
+        click.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+        SendInput(1, &click, sizeof(click));
+
+        p = GetAbsoluteScreenCoordinates(cursor_pos.x, cursor_pos.y);
+        click.mi.dx = p.x;
+        click.mi.dy = p.y;
+        click.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
+        SendInput(1, &click, sizeof(click));
+
         return 1;
-      POINT cursor_pos;
-      GetCursorPos(&cursor_pos);
-      SetForegroundWindow(syrefresh);
-      SetWindowPos(syrefresh, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
-      INPUT click;
-      POINT p;
-      click.type = INPUT_MOUSE;
-      p = GetAbsoluteScreenCoordinates(230, 418);
-      click.mi.dx = p.x;
-      click.mi.dy = p.y;
-      click.mi.mouseData = 0;
-      click.mi.time = 0;
-      click.mi.dwExtraInfo = 0;
+      }
 
-      click.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
-      SendInput(1, &click, sizeof(click));
+      break;
+    case VK_F4:
+      if (wParam == WM_KEYDOWN &&
+          sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
+        ShellExecuteA(NULL, "open",
+                      "C:/SVN/Syandus_Cores/C_ImmunoSim_01/Build/launch.bat",
+                      NULL, NULL,
+                      SW_MINIMIZE);
+        return 1;
+      }
 
-      click.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-      SendInput(1, &click, sizeof(click));
+      break;
+    case VK_ESCAPE:
+      if (foreground_win_class == "Sy_ALIVE3_Resource" ||
+          foreground_win_class == "Sy_ALIVE4_Resource") {
+        PostMessage(foreground_hwnd, WM_QUIT, 0, 0);
+        return 1;
+      }
 
-      click.mi.dwFlags = MOUSEEVENTF_LEFTUP;
-      SendInput(1, &click, sizeof(click));
-
-      p = GetAbsoluteScreenCoordinates(cursor_pos.x, cursor_pos.y);
-      click.mi.dx = p.x;
-      click.mi.dy = p.y;
-      click.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
-      SendInput(1, &click, sizeof(click));
-
-      return 1;
-    }
-  } else if (key_info->vkCode == VK_F4) {
-    if (wParam == WM_KEYDOWN &&
-        sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
-      ShellExecuteA(NULL, "open",
-                    "C:/SVN/Syandus_Cores/C_ImmunoSim_01/Build/launch.bat",
-                    NULL, NULL,
-                    SW_MINIMIZE);
-      return 1;
-    }
-  } else if (key_info->vkCode == VK_ESCAPE) {
-    if (foreground_win_class == "Sy_ALIVE3_Resource" ||
-        foreground_win_class == "Sy_ALIVE4_Resource") {
-      PostMessage(foreground_hwnd, WM_QUIT, 0, 0);
-    }
+      break;
   }
 
   return CallNextHookEx(dummy, code, wParam, lParam);
