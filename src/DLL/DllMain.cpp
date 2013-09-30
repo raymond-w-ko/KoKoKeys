@@ -10,7 +10,7 @@ HHOOK sHook = NULL;
 
 static HINSTANCE sHinst;
 static UINT sLControlScancode;
-static UINT sLshiftScancode;
+static UINT sLShiftScancode;
 static UINT sBScancode;
 static UINT sKScancode;
 static UINT sEscapeScancode;
@@ -144,7 +144,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
           InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode,
                            0 | KEYEVENTF_KEYUP, 0);
         }
-        InjectKeybdEvent(VK_LSHIFT, sLshiftScancode,
+        InjectKeybdEvent(VK_LSHIFT, sLShiftScancode,
                          0 | KEYEVENTF_KEYUP, 0);
 
         sLShiftDown = false;
@@ -157,12 +157,12 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
         sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
       if (foreground_win_title.find("Microsoft Visual Studio") != std::string::npos) {
         InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0, 0);
-        InjectKeybdEvent(VK_LSHIFT, sLshiftScancode, 0, 0);
+        InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0, 0);
         InjectKeybdEvent('B', sBScancode, 0, 0);
 
         InjectKeybdEvent('B', sBScancode, KEYEVENTF_KEYUP, 0);
         InjectKeybdEvent(VK_LCONTROL, sLControlScancode, KEYEVENTF_KEYUP, 0);
-        InjectKeybdEvent(VK_LSHIFT, sLshiftScancode, KEYEVENTF_KEYUP, 0);
+        InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP, 0);
       } else {
         STARTUPINFOA startup_info;
         PROCESS_INFORMATION process_info;
@@ -293,7 +293,7 @@ KOKOKEYSDLL_API int install(void) {
   sLControlScancode = MapVirtualKey(VK_LCONTROL, MAPVK_VK_TO_VSC);
   sBScancode = MapVirtualKey('B', MAPVK_VK_TO_VSC);
   sKScancode = MapVirtualKey('K', MAPVK_VK_TO_VSC);
-  sLshiftScancode = MapVirtualKey(VK_LSHIFT, MAPVK_VK_TO_VSC);
+  sLShiftScancode = MapVirtualKey(VK_LSHIFT, MAPVK_VK_TO_VSC);
   sEscapeScancode = MapVirtualKey(VK_ESCAPE, MAPVK_VK_TO_VSC);
   sHyphenScancode = MapVirtualKey(VK_OEM_MINUS, MAPVK_VK_TO_VSC);
   _install();
