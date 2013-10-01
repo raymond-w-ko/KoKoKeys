@@ -137,7 +137,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
             sAbortLShiftConversion = false;
             sLShiftDown = true;
           }
-          InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0, 0);
+          //InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0, 0);
           break;
         case WM_KEYUP:
           ULONGLONG current_tick = GetTickCount64();
@@ -148,14 +148,11 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
             InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode,
                              KEYEVENTF_KEYUP, 0);
           }
-          InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP, 0);
+          //InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP, 0);
 
           sLShiftDown = false;
           break;
       }
-
-      // always swallow
-      return 1;
 
       break;
     case VK_F1:
