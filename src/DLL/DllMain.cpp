@@ -74,6 +74,14 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
   const KBDLLHOOKSTRUCT* key_info = (const KBDLLHOOKSTRUCT*)lParam;
   char buffer[8192];
 
+  BYTE keyboard_state[256];
+  // unexplainable function call to make it work???
+  GetKeyState(0);
+  GetKeyboardState(keyboard_state);
+  bool alt = (keyboard_state[VK_MENU] & 0x80) != 0;
+  bool ctrl = (keyboard_state[VK_CONTROL] & 0x80) != 0;
+  bool shift = (keyboard_state[VK_SHIFT] & 0x80) != 0;
+
   HWND foreground_hwnd = GetForegroundWindow();
   std::string foreground_win_class;
   if (foreground_hwnd) {
@@ -282,6 +290,20 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
       if (foreground_win_class == "Sy_ALIVE3_Resource" ||
           foreground_win_class == "Sy_ALIVE4_Resource") {
         PostMessage(foreground_hwnd, WM_QUIT, 0, 0);
+        return 1;
+      }
+
+      break;
+    case VK_F9:
+      if (wParam == WM_KEYDOWN && ctrl && shift) {
+        LONG style = GetWindowLong(foreground_hwnd, GWL_STYLE);
+        style &= ~WS_CAPTION;
+        style &= ~WS_BORDER;
+        style &= ~WS_DLGFRAME;
+        style &= ~WS_SIZEBOX;
+        SetWindowLong(foreground_hwnd, GWL_STYLE, style);
+
+        SetWindowPos(foreground_hwnd, HWND_TOP, 0, 1080, 0, 0, SWP_NOSIZE);
         return 1;
       }
 
