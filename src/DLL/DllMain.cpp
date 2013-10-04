@@ -29,6 +29,7 @@ void _uninstall();
 
 static std::set<std::string> sCtrlTapEqualsEsc;
 static std::set<std::string> sNormalFunctionKeys;
+static boost::unordered_map<HWND, LONG> sOrigWindowStyles;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Utility Functions
@@ -296,14 +297,25 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
       break;
     case VK_F9:
       if (wParam == WM_KEYDOWN && ctrl && shift) {
-        LONG style = GetWindowLong(foreground_hwnd, GWL_STYLE);
-        style &= ~WS_CAPTION;
-        style &= ~WS_BORDER;
-        style &= ~WS_DLGFRAME;
-        style &= ~WS_SIZEBOX;
-        SetWindowLong(foreground_hwnd, GWL_STYLE, style);
+        auto orig_style = sOrigWindowStyles.find(foreground_hwnd);
+        if (orig_style == sOrigWindowStyles.end()) {
+          LONG style = GetWindowLong(foreground_hwnd, GWL_STYLE);
+          sOrigWindowStyles[foreground_hwnd] = style;
+          style &= ~WS_CAPTION;
+          style &= ~WS_BORDER;
+          style &= ~WS_DLGFRAME;
+          style &= ~WS_SIZEBOX;
+          SetWindowLong(foreground_hwnd, GWL_STYLE, style);
 
-        SetWindowPos(foreground_hwnd, HWND_TOP, 0, 1080, 0, 0, SWP_NOSIZE);
+          SetWindowPos(foreground_hwnd, HWND_TOP, 0, 1080, 0, 0, SWP_NOSIZE);
+        } else {
+          LONG style = orig_style->second;
+          SetWindowLong(foreground_hwnd, GWL_STYLE, style);
+          sOrigWindowStyles.erase(foreground_hwnd);
+
+          SetWindowPos(foreground_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
+        }
+
         return 1;
       }
 
@@ -313,11 +325,11 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
   return CallNextHookEx(dummy, code, wParam, lParam);
 }
 
-void _install() {
+static void _install() {
   sHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, sHinst, 0);
 }
 
-void _uninstall() {
+static void _uninstall() {
   if (sHook) {
     UnhookWindowsHookEx(sHook);
     sHook = NULL;
