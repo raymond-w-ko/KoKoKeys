@@ -9,12 +9,12 @@ HHOOK sHook = NULL;
 #pragma data_seg()
 
 static HINSTANCE sHinst;
-static UINT sLControlScancode;
-static UINT sLShiftScancode;
-static UINT sBScancode;
-static UINT sKScancode;
-static UINT sEscapeScancode;
-static UINT sHyphenScancode;
+static WORD sLControlScancode;
+static WORD sLShiftScancode;
+static WORD sBScancode;
+static WORD sKScancode;
+static WORD sEscapeScancode;
+static WORD sHyphenScancode;
 
 static ULONGLONG sLastCapsLockDownTime = 0;
 static bool sAbortCapsLockConversion = false;
@@ -24,8 +24,8 @@ static ULONGLONG sLastLShiftDownTime = 0;
 static bool sAbortLShiftConversion = false;
 static bool sLShiftDown = false;
 
-void _install();
-void _uninstall();
+static void _install();
+static void _uninstall();
 
 static std::set<std::string> sCtrlTapEqualsEsc;
 static std::set<std::string> sNormalFunctionKeys;
@@ -49,9 +49,16 @@ static BOOL FileExists(const char* szPath)
   return dwAttrib != INVALID_FILE_ATTRIBUTES;
 }
 
-static void InjectKeybdEvent(BYTE bVk, BYTE bScan, DWORD dwFlags, ULONG_PTR dwExtraInfo) {
+static void InjectKeybdEvent(WORD wVk, WORD wScan, DWORD dwFlags) {
   _uninstall();
-  keybd_event(bVk, bScan, dwFlags, dwExtraInfo);
+  INPUT input;
+  input.type = INPUT_KEYBOARD;
+  input.ki.wVk = wVk;
+  input.ki.wScan = wScan;
+  input.ki.dwFlags = dwFlags;
+  input.ki.time = 0;
+  input.ki.dwExtraInfo = 0;
+  SendInput(1, &input, sizeof(INPUT));
   _install();
 }
 
@@ -113,21 +120,18 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
             sCapsLockDown = true;
           }
 
-          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0, 0);
+          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0);
           break;
         case WM_KEYUP:
-          InjectKeybdEvent(VK_LCONTROL, sLControlScancode,
-                           KEYEVENTF_KEYUP, 0);
+          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, KEYEVENTF_KEYUP);
 
           ULONGLONG current_tick = GetTickCount64();
           ULONGLONG delta = current_tick - sLastCapsLockDownTime;
           bool in_group =
               sCtrlTapEqualsEsc.find(foreground_win_class) != sCtrlTapEqualsEsc.end();
-          if (delta < 500 && !sAbortCapsLockConversion && in_group) {
-            InjectKeybdEvent(VK_ESCAPE, sEscapeScancode,
-                             0, 0);
-            InjectKeybdEvent(VK_ESCAPE, sEscapeScancode,
-                             KEYEVENTF_KEYUP, 0);
+          if (delta < 333 && !sAbortCapsLockConversion && in_group) {
+            InjectKeybdEvent(VK_ESCAPE, sEscapeScancode, 0);
+            InjectKeybdEvent(VK_ESCAPE, sEscapeScancode, KEYEVENTF_KEYUP);
           }
           sCapsLockDown = false;
           break;
@@ -146,18 +150,16 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
             sAbortLShiftConversion = false;
             sLShiftDown = true;
           }
-          //InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0, 0);
+          //InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0);
           break;
         case WM_KEYUP:
           ULONGLONG current_tick = GetTickCount64();
           ULONGLONG delta = current_tick - sLastLShiftDownTime;
           if (delta < 500 && !sAbortLShiftConversion) {
-            InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode,
-                             0, 0);
-            InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode,
-                             KEYEVENTF_KEYUP, 0);
+            InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode, 0);
+            InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode, KEYEVENTF_KEYUP);
           }
-          //InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP, 0);
+          //InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP);
 
           sLShiftDown = false;
           break;
@@ -168,13 +170,13 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
       if (wParam == WM_KEYDOWN &&
           sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
         if (foreground_win_title.find("Microsoft Visual Studio") != std::string::npos) {
-          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0, 0);
-          InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0, 0);
-          InjectKeybdEvent('B', sBScancode, 0, 0);
+          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0);
+          InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0);
+          InjectKeybdEvent('B', sBScancode, 0);
 
-          InjectKeybdEvent('B', sBScancode, KEYEVENTF_KEYUP, 0);
-          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, KEYEVENTF_KEYUP, 0);
-          InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP, 0);
+          InjectKeybdEvent('B', sBScancode, KEYEVENTF_KEYUP);
+          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, KEYEVENTF_KEYUP);
+          InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP);
         } else {
           STARTUPINFOA startup_info;
           PROCESS_INFORMATION process_info;
@@ -337,12 +339,12 @@ static void _uninstall() {
 }
 
 KOKOKEYSDLL_API int install(void) {
-  sLControlScancode = MapVirtualKey(VK_LCONTROL, MAPVK_VK_TO_VSC);
-  sBScancode = MapVirtualKey('B', MAPVK_VK_TO_VSC);
-  sKScancode = MapVirtualKey('K', MAPVK_VK_TO_VSC);
-  sLShiftScancode = MapVirtualKey(VK_LSHIFT, MAPVK_VK_TO_VSC);
-  sEscapeScancode = MapVirtualKey(VK_ESCAPE, MAPVK_VK_TO_VSC);
-  sHyphenScancode = MapVirtualKey(VK_OEM_MINUS, MAPVK_VK_TO_VSC);
+  sLControlScancode = (WORD) MapVirtualKey(VK_LCONTROL, MAPVK_VK_TO_VSC);
+  sBScancode = (WORD) MapVirtualKey('B', MAPVK_VK_TO_VSC);
+  sKScancode = (WORD) MapVirtualKey('K', MAPVK_VK_TO_VSC);
+  sLShiftScancode = (WORD) MapVirtualKey(VK_LSHIFT, MAPVK_VK_TO_VSC);
+  sEscapeScancode = (WORD) MapVirtualKey(VK_ESCAPE, MAPVK_VK_TO_VSC);
+  sHyphenScancode = (WORD) MapVirtualKey(VK_OEM_MINUS, MAPVK_VK_TO_VSC);
   _install();
   return sHook != NULL;
 }
@@ -353,7 +355,7 @@ KOKOKEYSDLL_API void uninstall(void) {
 
 BOOL APIENTRY DllMain(HMODULE hModule,
                       DWORD  ul_reason_for_call,
-                      LPVOID lpReserved) {
+                      LPVOID) {
   sHinst = hModule;
 
   if (sCtrlTapEqualsEsc.size() == 0) {
