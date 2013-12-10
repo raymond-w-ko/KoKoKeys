@@ -24,29 +24,36 @@ static ULONGLONG sLastLShiftDownTime = 0;
 static bool sAbortLShiftConversion = false;
 static bool sLShiftDown = false;
 
-static void _install();
-static void _uninstall();
-
 static std::set<std::string> sCtrlTapEqualsEsc;
 static std::set<std::string> sNormalFunctionKeys;
 static boost::unordered_map<HWND, LONG> sOrigWindowStyles;
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // Utility Functions
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 static BOOL DirectoryExists(const char* szPath) {
   DWORD dwAttrib = GetFileAttributesA(szPath);
 
-  return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
-         (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+  return ((dwAttrib != INVALID_FILE_ATTRIBUTES) &&
+          (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 }
 
 static BOOL FileExists(const char* szPath)
 {
   DWORD dwAttrib = GetFileAttributesA(szPath);
-
   return dwAttrib != INVALID_FILE_ATTRIBUTES;
+}
+
+static void _install() {
+  sHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, sHinst, 0);
+}
+
+static void _uninstall() {
+  if (sHook) {
+    UnhookWindowsHookEx(sHook);
+    sHook = NULL;
+  }
 }
 
 static void InjectKeybdEvent(WORD wVk, WORD wScan, DWORD dwFlags) {
@@ -69,13 +76,14 @@ static POINT GetAbsoluteScreenCoordinates(int x, int y) {
   return p;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 // Hook Function
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
-static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lParam) {
+static LRESULT CALLBACK LowLevelKeyboardProc(
+    int code, WPARAM wParam, LPARAM lParam) {
   // specified by Win32 documentation that you must do this if code is < 0;
-  static HHOOK dummy = 0;
+  HHOOK dummy = 0;
   if (code < 0)
     return CallNextHookEx(dummy, code, wParam, lParam);
 
@@ -325,17 +333,6 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
   }
 
   return CallNextHookEx(dummy, code, wParam, lParam);
-}
-
-static void _install() {
-  sHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, sHinst, 0);
-}
-
-static void _uninstall() {
-  if (sHook) {
-    UnhookWindowsHookEx(sHook);
-    sHook = NULL;
-  }
 }
 
 KOKOKEYSDLL_API int install(void) {
