@@ -364,6 +364,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     sCtrlTapEqualsEsc.insert("SynergyDesk");
     // VirtualBox
     sCtrlTapEqualsEsc.insert("QWidget");
+    sCtrlTapEqualsEsc.insert("MozillaWindowClass");
   }
 
   if (sNormalFunctionKeys.size() == 0) {
