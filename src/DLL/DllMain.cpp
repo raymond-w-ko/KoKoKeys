@@ -28,9 +28,19 @@ static std::set<std::string> sCtrlTapEqualsEsc;
 static std::set<std::string> sNormalFunctionKeys;
 static boost::unordered_map<HWND, LONG> sOrigWindowStyles;
 
+static void _install();
+static void _uninstall();
+
 ///////////////////////////////////////////////////////////////////////////////
 // Utility Functions
 ///////////////////////////////////////////////////////////////////////////////
+//
+template <typename Container, typename Key>
+inline bool Contains(const Container& container, const Key& key)
+{
+   return container.find(key) != container.end();
+}
+
 
 static BOOL DirectoryExists(const char* szPath) {
   DWORD dwAttrib = GetFileAttributesA(szPath);
@@ -43,17 +53,6 @@ static BOOL FileExists(const char* szPath)
 {
   DWORD dwAttrib = GetFileAttributesA(szPath);
   return dwAttrib != INVALID_FILE_ATTRIBUTES;
-}
-
-static void _install() {
-  sHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, sHinst, 0);
-}
-
-static void _uninstall() {
-  if (sHook) {
-    UnhookWindowsHookEx(sHook);
-    sHook = NULL;
-  }
 }
 
 static void InjectKeybdEvent(WORD wVk, WORD wScan, DWORD dwFlags) {
@@ -79,6 +78,40 @@ static POINT GetAbsoluteScreenCoordinates(int x, int y) {
 ///////////////////////////////////////////////////////////////////////////////
 // Hook Function
 ///////////////////////////////////////////////////////////////////////////////
+
+static void F3() {
+  HWND syrefresh = FindWindowA(NULL, "SyRefresh 4");
+  if (!syrefresh)
+    return;
+  POINT cursor_pos;
+  GetCursorPos(&cursor_pos);
+  SetForegroundWindow(syrefresh);
+  SetWindowPos(syrefresh, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
+  INPUT click;
+  POINT p;
+  click.type = INPUT_MOUSE;
+  p = GetAbsoluteScreenCoordinates(230, 418);
+  click.mi.dx = p.x;
+  click.mi.dy = p.y;
+  click.mi.mouseData = 0;
+  click.mi.time = 0;
+  click.mi.dwExtraInfo = 0;
+
+  click.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
+  SendInput(1, &click, sizeof(click));
+
+  click.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
+  SendInput(1, &click, sizeof(click));
+
+  click.mi.dwFlags = MOUSEEVENTF_LEFTUP;
+  SendInput(1, &click, sizeof(click));
+
+  p = GetAbsoluteScreenCoordinates(cursor_pos.x, cursor_pos.y);
+  click.mi.dx = p.x;
+  click.mi.dy = p.y;
+  click.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
+  SendInput(1, &click, sizeof(click));
+}
 
 static LRESULT CALLBACK LowLevelKeyboardProc(
     int code, WPARAM wParam, LPARAM lParam) {
@@ -176,7 +209,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
       break;
     case VK_F1:
       if (wParam == WM_KEYDOWN &&
-          sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
+          !Contains(sNormalFunctionKeys, foreground_win_class)) {
         if (foreground_win_title.find("Microsoft Visual Studio") != std::string::npos) {
           InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0);
           InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0);
@@ -221,7 +254,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
       break;
     case VK_F2:
       if (wParam == WM_KEYDOWN &&
-          sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
+          !Contains(sNormalFunctionKeys, foreground_win_class)) {
         STARTUPINFOA startup_info;
         PROCESS_INFORMATION process_info;
         memset(&startup_info, 0, sizeof(startup_info));
@@ -249,46 +282,15 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
       break;
     case VK_F3:
       if (wParam == WM_KEYDOWN &&
-          sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
-        HWND syrefresh = FindWindowA(NULL, "SyRefresh 4");
-        if (!syrefresh)
-          return 1;
-        POINT cursor_pos;
-        GetCursorPos(&cursor_pos);
-        SetForegroundWindow(syrefresh);
-        SetWindowPos(syrefresh, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
-        INPUT click;
-        POINT p;
-        click.type = INPUT_MOUSE;
-        p = GetAbsoluteScreenCoordinates(230, 418);
-        click.mi.dx = p.x;
-        click.mi.dy = p.y;
-        click.mi.mouseData = 0;
-        click.mi.time = 0;
-        click.mi.dwExtraInfo = 0;
-
-        click.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
-        SendInput(1, &click, sizeof(click));
-
-        click.mi.dwFlags = MOUSEEVENTF_LEFTDOWN;
-        SendInput(1, &click, sizeof(click));
-
-        click.mi.dwFlags = MOUSEEVENTF_LEFTUP;
-        SendInput(1, &click, sizeof(click));
-
-        p = GetAbsoluteScreenCoordinates(cursor_pos.x, cursor_pos.y);
-        click.mi.dx = p.x;
-        click.mi.dy = p.y;
-        click.mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
-        SendInput(1, &click, sizeof(click));
-
+          !Contains(sNormalFunctionKeys, foreground_win_class)) {
+        F3();
         return 1;
       }
 
       break;
     case VK_F4:
       if (wParam == WM_KEYDOWN &&
-          sNormalFunctionKeys.find(foreground_win_class) == sNormalFunctionKeys.end()) {
+          !Contains(sNormalFunctionKeys, foreground_win_class)) {
         ShellExecuteA(NULL, "open",
                       "C:/SVN/Syandus_Cores/C_ImmunoSim_01/Build/launch.bat",
                       NULL, NULL,
@@ -333,6 +335,17 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
   }
 
   return CallNextHookEx(dummy, code, wParam, lParam);
+}
+
+static void _install() {
+  sHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc, sHinst, 0);
+}
+
+static void _uninstall() {
+  if (sHook) {
+    UnhookWindowsHookEx(sHook);
+    sHook = NULL;
+  }
 }
 
 KOKOKEYSDLL_API int install(void) {
