@@ -155,7 +155,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lPa
         case WM_KEYUP:
           ULONGLONG current_tick = GetTickCount64();
           ULONGLONG delta = current_tick - sLastLShiftDownTime;
-          if (delta < 500 && !sAbortLShiftConversion) {
+          if (delta < 333 && !sAbortLShiftConversion) {
             InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode, 0);
             InjectKeybdEvent(VK_OEM_MINUS, sHyphenScancode, KEYEVENTF_KEYUP);
           }
