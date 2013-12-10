@@ -215,6 +215,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
 
       break;
     case VK_SPACE:
+      /*
       switch (wParam) {
         case WM_KEYDOWN:
           if (!sSpaceDown) {
@@ -238,6 +239,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
           return 1;
           break;
       }
+      */
 
       break;
     case VK_F1:
