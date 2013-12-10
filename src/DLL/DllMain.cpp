@@ -15,6 +15,7 @@ static WORD sBScancode;
 static WORD sKScancode;
 static WORD sEscapeScancode;
 static WORD sHyphenScancode;
+static WORD sSpaceScancode;
 
 static ULONGLONG sLastCapsLockDownTime = 0;
 static bool sAbortCapsLockConversion = false;
@@ -24,8 +25,12 @@ static ULONGLONG sLastLShiftDownTime = 0;
 static bool sAbortLShiftConversion = false;
 static bool sLShiftDown = false;
 
+static bool sAbortSpace2CtrlConversion = false;
+static bool sSpaceDown = false;
+
 static std::set<std::string> sCtrlTapEqualsEsc;
 static std::set<std::string> sNormalFunctionKeys;
+static std::set<std::string> sNormalSpacebarClasses;
 static boost::unordered_map<HWND, LONG> sOrigWindowStyles;
 
 static void _install();
@@ -148,6 +153,8 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
       sAbortCapsLockConversion = true;
     if (key_info->vkCode != VK_LSHIFT)
       sAbortLShiftConversion = true;
+    if (key_info->vkCode != VK_SPACE)
+      sAbortSpace2CtrlConversion = true;
   }
 
   switch (key_info->vkCode) {
@@ -203,6 +210,32 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
           //InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP);
 
           sLShiftDown = false;
+          break;
+      }
+
+      break;
+    case VK_SPACE:
+      switch (wParam) {
+        case WM_KEYDOWN:
+          if (!sSpaceDown) {
+            InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0);
+
+            sAbortSpace2CtrlConversion = false;
+            sSpaceDown = true;
+          }
+
+          return 1;
+          break;
+        case WM_KEYUP:
+          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, KEYEVENTF_KEYUP);
+          if (!sAbortSpace2CtrlConversion) {
+            InjectKeybdEvent(VK_SPACE, sSpaceScancode, 0);
+            InjectKeybdEvent(VK_SPACE, sSpaceScancode, KEYEVENTF_KEYUP);
+          }
+
+          sSpaceDown = false;
+
+          return 1;
           break;
       }
 
@@ -355,6 +388,7 @@ KOKOKEYSDLL_API int install(void) {
   sLShiftScancode = (WORD) MapVirtualKey(VK_LSHIFT, MAPVK_VK_TO_VSC);
   sEscapeScancode = (WORD) MapVirtualKey(VK_ESCAPE, MAPVK_VK_TO_VSC);
   sHyphenScancode = (WORD) MapVirtualKey(VK_OEM_MINUS, MAPVK_VK_TO_VSC);
+  sSpaceScancode = (WORD) MapVirtualKey(VK_SPACE, MAPVK_VK_TO_VSC);
   _install();
   return sHook != NULL;
 }
@@ -388,6 +422,10 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     sNormalFunctionKeys.insert("SDL_app");
     sNormalFunctionKeys.insert("Sy_ALIVE3_Resource");
     sNormalFunctionKeys.insert("Sy_ALIVE4_Resource");
+  }
+
+  if (sNormalSpacebarClasses.size() == 0) {
+    sNormalSpacebarClasses.insert("Valve001");
   }
 
   switch (ul_reason_for_call) {
