@@ -253,7 +253,11 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
           InjectKeybdEvent('B', sBScancode, KEYEVENTF_KEYUP);
           InjectKeybdEvent(VK_LCONTROL, sLControlScancode, KEYEVENTF_KEYUP);
           InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, KEYEVENTF_KEYUP);
-        } else {
+
+          return 1;
+        }
+        /*
+        else {
           STARTUPINFOA startup_info;
           PROCESS_INFORMATION process_info;
           memset(&startup_info, 0, sizeof(startup_info));
@@ -264,6 +268,10 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
             exe = "C:/Program Files (x86)/Vim/vim73/gvim.exe";
           if (FileExists("C:/Program Files/Vim/vim73/gvim.exe"))
             exe = "C:/Program Files/Vim/vim73/gvim.exe";
+          if (FileExists("C:/Program Files (x86)/Vim/vim74/gvim.exe"))
+            exe = "C:/Program Files (x86)/Vim/vim74/gvim.exe";
+          if (FileExists("C:/Program Files/Vim/vim74/gvim.exe"))
+            exe = "C:/Program Files/Vim/vim74/gvim.exe";
 
           std::string working_dir;
           if (DirectoryExists("C:/cygwin/home/root"))
@@ -283,10 +291,10 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
               &startup_info,
               &process_info);
         }
-
-        return 1;
+        */
       }
       break;
+    /*
     case VK_F2:
       if (wParam == WM_KEYDOWN &&
           !Contains(sNormalFunctionKeys, foreground_win_class)) {
@@ -315,6 +323,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
       }
 
       break;
+    */
     case VK_F3:
       if (wParam == WM_KEYDOWN &&
           !Contains(sNormalFunctionKeys, foreground_win_class)) {
@@ -327,7 +336,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
       if (wParam == WM_KEYDOWN &&
           !Contains(sNormalFunctionKeys, foreground_win_class)) {
         ShellExecuteA(NULL, "open",
-                      "C:/SVN/Syandus_Cores/C_ImmunoSim_01/Build/launch.bat",
+                      "C:/SVN/_my_launch.bat",
                       NULL, NULL,
                       SW_MINIMIZE);
         return 1;
