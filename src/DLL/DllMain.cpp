@@ -424,6 +424,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     sNormalFunctionKeys.insert("SDL_app");
     sNormalFunctionKeys.insert("Sy_ALIVE3_Resource");
     sNormalFunctionKeys.insert("Sy_ALIVE4_Resource");
+	sNormalFunctionKeys.insert("wxWindowClassNR");
   }
 
   if (sNormalSpacebarClasses.size() == 0) {
