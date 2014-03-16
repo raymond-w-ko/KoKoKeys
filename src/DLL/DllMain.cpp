@@ -420,6 +420,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 
   if (sShiftKeyUnderscoreBlacklist.size() == 0) {
     sShiftKeyUnderscoreBlacklist.insert("TvnWindowClass");
+    sShiftKeyUnderscoreBlacklist.insert("vncviewer");
   }
 
   switch (ul_reason_for_call) {
