@@ -2,11 +2,7 @@
 #include "stdafx.h"
 #include "DllMain.h"
 
-#pragma data_seg(".shared")
-// all variables below are shared by different instances of the DLL
 HHOOK sHook = NULL;
-
-#pragma data_seg()
 
 static HINSTANCE sHinst;
 static WORD sLControlScancode;
@@ -25,12 +21,11 @@ static ULONGLONG sLastLShiftDownTime = 0;
 static bool sAbortLShiftConversion = false;
 static bool sLShiftDown = false;
 
-static bool sAbortSpace2CtrlConversion = false;
 static bool sSpaceDown = false;
 
 static std::set<std::string> sCtrlTapEqualsEsc;
 static std::set<std::string> sNormalFunctionKeys;
-static std::set<std::string> sNormalSpacebarClasses;
+static std::set<std::string> sShiftKeyUnderscoreBlacklist;
 static boost::unordered_map<HWND, LONG> sOrigWindowStyles;
 
 static void _install();
@@ -47,8 +42,8 @@ inline bool Contains(const Container& container, const Key& key)
 }
 
 
-static BOOL DirectoryExists(const char* szPath) {
-  DWORD dwAttrib = GetFileAttributesA(szPath);
+static BOOL DirectoryExists(const std::string path) {
+  DWORD dwAttrib = GetFileAttributesA(path.c_str());
 
   return ((dwAttrib != INVALID_FILE_ATTRIBUTES) &&
           (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
@@ -62,6 +57,9 @@ static BOOL FileExists(const char* szPath)
 
 static void InjectKeybdEvent(WORD wVk, WORD wScan, DWORD dwFlags) {
   _uninstall();
+
+  //keybd_event(wVk, wScan, dwFlags, 0);
+
   INPUT input;
   input.type = INPUT_KEYBOARD;
   input.ki.wVk = wVk;
@@ -70,6 +68,7 @@ static void InjectKeybdEvent(WORD wVk, WORD wScan, DWORD dwFlags) {
   input.ki.time = 0;
   input.ki.dwExtraInfo = 0;
   SendInput(1, &input, sizeof(INPUT));
+
   _install();
 }
 
@@ -80,11 +79,26 @@ static POINT GetAbsoluteScreenCoordinates(int x, int y) {
   return p;
 }
 
+static std::string GetCygwinDir() {
+  std::string dir;
+
+  dir = "C:/cygwin";
+  if (DirectoryExists(dir))
+    return dir;
+
+  dir = "C:/cygwin64";
+  if (DirectoryExists(dir))
+    return dir;
+
+  dir = "";
+  return dir;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Hook Function
 ///////////////////////////////////////////////////////////////////////////////
 
-static void F3() {
+static void SyRefresh() {
   HWND syrefresh = FindWindowA(NULL, "SyRefresh 4");
   if (!syrefresh)
     return;
@@ -118,6 +132,61 @@ static void F3() {
   SendInput(1, &click, sizeof(click));
 }
 
+static void StartVim() {
+  std::string exe;
+  if (FileExists("C:/Program Files (x86)/Vim/vim73/gvim.exe"))
+    exe = "C:/Program Files (x86)/Vim/vim73/gvim.exe";
+  if (FileExists("C:/Program Files/Vim/vim73/gvim.exe"))
+    exe = "C:/Program Files/Vim/vim73/gvim.exe";
+  if (FileExists("C:/Program Files (x86)/Vim/vim74/gvim.exe"))
+    exe = "C:/Program Files (x86)/Vim/vim74/gvim.exe";
+  if (FileExists("C:/Program Files/Vim/vim74/gvim.exe"))
+    exe = "C:/Program Files/Vim/vim74/gvim.exe";
+
+  std::string candidate;
+  std::string working_dir;
+
+  std::string cygwin_dir = GetCygwinDir();
+  candidate = cygwin_dir + "/home/root";
+  if (DirectoryExists(candidate))
+    working_dir = candidate;
+
+  candidate = cygwin_dir + "/home/rko";
+  if (DirectoryExists(candidate))
+    working_dir = candidate;
+
+  ShellExecuteA(
+      NULL,
+      "open",
+      exe.c_str(),
+      "",
+      working_dir.c_str(),
+      SW_SHOWDEFAULT);
+}
+
+static void StartMintty() {
+  std::string working_dir;
+
+  std::string cygwin_dir = GetCygwinDir();
+  std::string candidate;
+
+  candidate = cygwin_dir + "/home/root";
+  if (DirectoryExists(candidate))
+    working_dir = candidate;
+
+  candidate = cygwin_dir + "/home/rko";
+  if (DirectoryExists(candidate))
+    working_dir = candidate;
+
+  ShellExecuteA(
+      NULL,
+      "open",
+      (cygwin_dir + "/bin/mintty.exe").c_str(),
+      "-i /Cygwin-Terminal.ico -",
+      working_dir.c_str(),
+      SW_SHOWDEFAULT);
+}
+
 static LRESULT CALLBACK LowLevelKeyboardProc(
     int code, WPARAM wParam, LPARAM lParam) {
   // specified by Win32 documentation that you must do this if code is < 0;
@@ -126,10 +195,11 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
     return CallNextHookEx(dummy, code, wParam, lParam);
 
   const KBDLLHOOKSTRUCT* key_info = (const KBDLLHOOKSTRUCT*)lParam;
-  char buffer[8192];
+  char buffer[1024];
 
   BYTE keyboard_state[256];
-  // unexplainable function call to make it work???
+  // unexplainable function call to make GetKeyboardState() work???
+  // http://msdn.microsoft.com/en-us/library/windows/desktop/ms646299(v=vs.85).aspx
   GetKeyState(0);
   GetKeyboardState(keyboard_state);
   bool alt = (keyboard_state[VK_MENU] & 0x80) != 0;
@@ -139,12 +209,12 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
   HWND foreground_hwnd = GetForegroundWindow();
   std::string foreground_win_class;
   if (foreground_hwnd) {
-    GetClassNameA(foreground_hwnd, buffer, 8192);
+    GetClassNameA(foreground_hwnd, buffer, 1024);
     foreground_win_class = buffer;
   }
   std::string foreground_win_title;
   if (foreground_hwnd) {
-    GetWindowTextA(foreground_hwnd, buffer, 8192);
+    GetWindowTextA(foreground_hwnd, buffer, 1024);
     foreground_win_title = buffer;
   }
 
@@ -153,8 +223,6 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
       sAbortCapsLockConversion = true;
     if (key_info->vkCode != VK_LSHIFT)
       sAbortLShiftConversion = true;
-    if (key_info->vkCode != VK_SPACE)
-      sAbortSpace2CtrlConversion = true;
   }
 
   switch (key_info->vkCode) {
@@ -190,6 +258,9 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
 
       break;
     case VK_LSHIFT:
+      if (sShiftKeyUnderscoreBlacklist.find(foreground_win_class) != sShiftKeyUnderscoreBlacklist.end())
+        break;
+
       switch (wParam) {
         case WM_KEYDOWN:
           // this guard is to prevent key repeat from resetting the time
@@ -212,39 +283,9 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
           sLShiftDown = false;
           break;
       }
-
-      break;
-    case VK_SPACE:
-      /*
-      switch (wParam) {
-        case WM_KEYDOWN:
-          if (!sSpaceDown) {
-            InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0);
-
-            sAbortSpace2CtrlConversion = false;
-            sSpaceDown = true;
-          }
-
-          return 1;
-          break;
-        case WM_KEYUP:
-          InjectKeybdEvent(VK_LCONTROL, sLControlScancode, KEYEVENTF_KEYUP);
-          if (!sAbortSpace2CtrlConversion) {
-            InjectKeybdEvent(VK_SPACE, sSpaceScancode, 0);
-            InjectKeybdEvent(VK_SPACE, sSpaceScancode, KEYEVENTF_KEYUP);
-          }
-
-          sSpaceDown = false;
-
-          return 1;
-          break;
-      }
-      */
-
       break;
     case VK_F1:
-      if (wParam == WM_KEYDOWN &&
-          !Contains(sNormalFunctionKeys, foreground_win_class)) {
+      if (wParam == WM_KEYDOWN && !Contains(sNormalFunctionKeys, foreground_win_class)) {
         if (foreground_win_title.find("Microsoft Visual Studio") != std::string::npos) {
           InjectKeybdEvent(VK_LCONTROL, sLControlScancode, 0);
           InjectKeybdEvent(VK_LSHIFT, sLShiftScancode, 0);
@@ -256,81 +297,24 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
 
           return 1;
         }
-        /*
         else {
-          STARTUPINFOA startup_info;
-          PROCESS_INFORMATION process_info;
-          memset(&startup_info, 0, sizeof(startup_info));
-          startup_info.cb = sizeof(startup_info);
-
-          std::string exe;
-          if (FileExists("C:/Program Files (x86)/Vim/vim73/gvim.exe"))
-            exe = "C:/Program Files (x86)/Vim/vim73/gvim.exe";
-          if (FileExists("C:/Program Files/Vim/vim73/gvim.exe"))
-            exe = "C:/Program Files/Vim/vim73/gvim.exe";
-          if (FileExists("C:/Program Files (x86)/Vim/vim74/gvim.exe"))
-            exe = "C:/Program Files (x86)/Vim/vim74/gvim.exe";
-          if (FileExists("C:/Program Files/Vim/vim74/gvim.exe"))
-            exe = "C:/Program Files/Vim/vim74/gvim.exe";
-
-          std::string working_dir;
-          if (DirectoryExists("C:/cygwin/home/root"))
-            working_dir = "C:/cygwin/home/root";
-          if (DirectoryExists("C:/cygwin/home/rko"))
-            working_dir = "C:/cygwin/home/rko";
-
-          CreateProcessA(
-              exe.c_str(),
-              NULL,
-              NULL,
-              NULL,
-              FALSE,
-              CREATE_DEFAULT_ERROR_MODE,
-              0,
-              working_dir.c_str(),
-              &startup_info,
-              &process_info);
+          StartVim();
+          return 1;
         }
-        */
       }
       break;
-    /*
     case VK_F2:
-      if (wParam == WM_KEYDOWN &&
-          !Contains(sNormalFunctionKeys, foreground_win_class)) {
-        STARTUPINFOA startup_info;
-        PROCESS_INFORMATION process_info;
-        memset(&startup_info, 0, sizeof(startup_info));
-        startup_info.cb = sizeof(startup_info);
-        std::string working_dir;
-        if (DirectoryExists("C:/cygwin/home/root"))
-          working_dir = "C:/cygwin/home/root";
-        if (DirectoryExists("C:/cygwin/home/rko"))
-          working_dir = "C:/cygwin/home/rko";
-        CreateProcessA(
-            "C:/cygwin/bin/mintty.exe",
-            NULL,
-            NULL,
-            NULL,
-            FALSE,
-            CREATE_DEFAULT_ERROR_MODE,
-            0,
-            working_dir.c_str(),
-            &startup_info,
-            &process_info);
-
+      if (wParam == WM_KEYDOWN && !Contains(sNormalFunctionKeys, foreground_win_class)) {
+        StartMintty();
         return 1;
       }
-
       break;
-    */
     case VK_F3:
       if (wParam == WM_KEYDOWN &&
           !Contains(sNormalFunctionKeys, foreground_win_class)) {
-        F3();
+        SyRefresh();
         return 1;
       }
-
       break;
     case VK_F4:
       if (wParam == WM_KEYDOWN &&
@@ -349,7 +333,6 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
         PostMessage(foreground_hwnd, WM_QUIT, 0, 0);
         return 1;
       }
-
       break;
     case VK_F9:
       if (wParam == WM_KEYDOWN && ctrl && shift) {
@@ -374,7 +357,6 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
 
         return 1;
       }
-
       break;
   }
 
@@ -433,11 +415,11 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     sNormalFunctionKeys.insert("SDL_app");
     sNormalFunctionKeys.insert("Sy_ALIVE3_Resource");
     sNormalFunctionKeys.insert("Sy_ALIVE4_Resource");
-	sNormalFunctionKeys.insert("wxWindowClassNR");
+    sNormalFunctionKeys.insert("wxWindowClassNR");
   }
 
-  if (sNormalSpacebarClasses.size() == 0) {
-    sNormalSpacebarClasses.insert("Valve001");
+  if (sShiftKeyUnderscoreBlacklist.size() == 0) {
+    sShiftKeyUnderscoreBlacklist.insert("TvnWindowClass");
   }
 
   switch (ul_reason_for_call) {
