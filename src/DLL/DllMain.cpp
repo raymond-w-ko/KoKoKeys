@@ -26,6 +26,7 @@ static bool sSpaceDown = false;
 static std::set<std::string> sCtrlTapEqualsEsc;
 static std::set<std::string> sNormalFunctionKeys;
 static std::set<std::string> sShiftKeyUnderscoreBlacklist;
+static std::set<std::string> sTitleBlacklist;
 static boost::unordered_map<HWND, LONG> sOrigWindowStyles;
 
 static void _install();
@@ -218,6 +219,12 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
     foreground_win_title = buffer;
   }
 
+  for (const auto& candidate : sTitleBlacklist) {
+    if (foreground_win_title.find(candidate) != std::string::npos) {
+      return CallNextHookEx(dummy, code, wParam, lParam);
+    }
+  }
+
   if (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN) {
     if (key_info->vkCode != VK_CAPITAL)
       sAbortCapsLockConversion = true;
@@ -390,11 +397,7 @@ KOKOKEYSDLL_API void uninstall(void) {
   _uninstall();
 }
 
-BOOL APIENTRY DllMain(HMODULE hModule,
-                      DWORD  ul_reason_for_call,
-                      LPVOID) {
-  sHinst = hModule;
-
+static void Init() {
   if (sCtrlTapEqualsEsc.size() == 0) {
     sCtrlTapEqualsEsc.insert("Vim");
     sCtrlTapEqualsEsc.insert("mintty");
@@ -422,6 +425,18 @@ BOOL APIENTRY DllMain(HMODULE hModule,
     sShiftKeyUnderscoreBlacklist.insert("TvnWindowClass");
     sShiftKeyUnderscoreBlacklist.insert("vncviewer");
   }
+
+  if (sTitleBlacklist.size() == 0) {
+    sTitleBlacklist.insert("Oracle VM VirtualBox");
+  }
+}
+
+BOOL APIENTRY DllMain(HMODULE hModule,
+                      DWORD  ul_reason_for_call,
+                      LPVOID) {
+  sHinst = hModule;
+
+  Init();
 
   switch (ul_reason_for_call) {
     case DLL_PROCESS_ATTACH:
