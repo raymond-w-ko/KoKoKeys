@@ -291,6 +291,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
           break;
       }
       break;
+    /*
     case VK_F1:
       if (wParam == WM_KEYDOWN && !Contains(sNormalFunctionKeys, foreground_win_class)) {
         if (foreground_win_title.find("Microsoft Visual Studio") != std::string::npos) {
@@ -334,6 +335,7 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
       }
 
       break;
+    */
     case VK_ESCAPE:
       if (foreground_win_class == "Sy_ALIVE3_Resource" ||
           foreground_win_class == "Sy_ALIVE4_Resource") {
@@ -363,6 +365,11 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
         }
 
         return 1;
+      }
+      break;
+    case VK_F12:
+      if (wParam == WM_KEYDOWN && ctrl && shift) {
+        SetWindowPos(foreground_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
       }
       break;
   }
