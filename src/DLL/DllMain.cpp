@@ -234,6 +234,8 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
       sAbortCapsLockConversion = true;
     if (key_info->vkCode != VK_LSHIFT)
       sAbortLShiftConversion = true;
+    if (key_info->vkCode != VK_RETURN)
+      sAbortReturnConversion = true;
   }
 
   switch (key_info->vkCode) {
