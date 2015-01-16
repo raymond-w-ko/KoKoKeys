@@ -355,13 +355,13 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
           style &= ~WS_SIZEBOX;
           SetWindowLong(foreground_hwnd, GWL_STYLE, style);
 
-          SetWindowPos(foreground_hwnd, HWND_TOP, 0, 1080, 0, 0, SWP_NOSIZE);
+          //SetWindowPos(foreground_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
         } else {
           LONG style = orig_style->second;
           SetWindowLong(foreground_hwnd, GWL_STYLE, style);
           sOrigWindowStyles.erase(foreground_hwnd);
 
-          SetWindowPos(foreground_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
+          //SetWindowPos(foreground_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
         }
 
         return 1;
