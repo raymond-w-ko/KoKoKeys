@@ -6,6 +6,8 @@ HHOOK sHook = NULL;
 
 static HINSTANCE sHinst;
 static WORD sLControlScancode;
+static WORD sRControlScancode;
+static WORD sReturnScancode;
 static WORD sLShiftScancode;
 static WORD sBScancode;
 static WORD sKScancode;
@@ -17,11 +19,13 @@ static ULONGLONG sLastCapsLockDownTime = 0;
 static bool sAbortCapsLockConversion = false;
 static bool sCapsLockDown = false;
 
+static ULONGLONG sLastReturnDownTime = 0;
+static bool sAbortReturnConversion = false;
+static bool sReturnDown = false;
+
 static ULONGLONG sLastLShiftDownTime = 0;
 static bool sAbortLShiftConversion = false;
 static bool sLShiftDown = false;
-
-static bool sSpaceDown = false;
 
 static std::set<std::string> sCtrlTapEqualsEsc;
 static std::set<std::string> sNormalFunctionKeys;
@@ -264,6 +268,35 @@ static LRESULT CALLBACK LowLevelKeyboardProc(
       return 1;
 
       break;
+    case VK_RETURN: {
+      switch (wParam) {
+        case WM_KEYDOWN:
+          if (!sReturnDown) {
+            sLastReturnDownTime = GetTickCount64();
+            sAbortReturnConversion = false;
+            sReturnDown = true;
+          }
+
+          InjectKeybdEvent(VK_RCONTROL, sRControlScancode, 0);
+          break;
+        case WM_KEYUP:
+          InjectKeybdEvent(VK_RCONTROL, sRControlScancode, KEYEVENTF_KEYUP);
+
+          ULONGLONG current_tick = GetTickCount64();
+          ULONGLONG delta = current_tick - sLastReturnDownTime;
+          if (delta < 333 && !sAbortReturnConversion) {
+            InjectKeybdEvent(VK_RETURN, sReturnScancode, 0);
+            InjectKeybdEvent(VK_RETURN, sReturnScancode, KEYEVENTF_KEYUP);
+          }
+          sReturnDown = false;
+          break;
+      }
+
+      // always swall Enter
+      return 1;
+
+      break;
+    }
     case VK_LSHIFT:
       if (sShiftKeyUnderscoreBlacklist.find(foreground_win_class) != sShiftKeyUnderscoreBlacklist.end())
         break;
@@ -390,6 +423,8 @@ static void _uninstall() {
 
 KOKOKEYSDLL_API int install(void) {
   sLControlScancode = (WORD) MapVirtualKey(VK_LCONTROL, MAPVK_VK_TO_VSC);
+  sRControlScancode = (WORD) MapVirtualKey(VK_RCONTROL, MAPVK_VK_TO_VSC);
+  sReturnScancode = (WORD) MapVirtualKey(VK_RETURN, MAPVK_VK_TO_VSC);
   sBScancode = (WORD) MapVirtualKey('B', MAPVK_VK_TO_VSC);
   sKScancode = (WORD) MapVirtualKey('K', MAPVK_VK_TO_VSC);
   sLShiftScancode = (WORD) MapVirtualKey(VK_LSHIFT, MAPVK_VK_TO_VSC);
