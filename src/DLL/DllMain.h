@@ -12,6 +12,15 @@ class KeyRemapper {
   const HMODULE dll_module_;
 
  private:
+  enum CharacterType {
+    kScanCode,
+    kUnicode,
+  };
+  struct Character {
+    std::string str;
+    CharacterType type;
+  };
+
   void InjectKey(WORD virtual_key_code, bool up);
 
   std::unordered_set<std::string> ctrl_tap_esc_;
@@ -36,4 +45,7 @@ class KeyRemapper {
   ConversionState caps_;
   ConversionState return_;
   ConversionState lshift_;
+
+  bool mode_switch_;
+  std::unordered_map<UINT, Character> mode_switch_map_;
 };
