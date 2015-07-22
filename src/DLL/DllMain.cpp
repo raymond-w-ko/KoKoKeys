@@ -166,6 +166,7 @@ abort:
 
       break;
     }
+	/*
     case VK_LSHIFT: {
       if (shift_key_underscore_blacklist_.count(foreground_win_class) > 0)
         break;
@@ -191,6 +192,7 @@ abort:
       }
       break;
     }
+	*/
     case VK_OEM_1: {
       // always eat ; since it is the mode switch key
       switch (wParam) {
