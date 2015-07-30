@@ -65,6 +65,10 @@ class KeyRemapper {
   ConversionState return_;
   ConversionState lshift_;
 
+  bool lalt;
+  bool lctrl;
+  bool lshift;
+
   bool mode_switch_;
   std::unordered_map<UINT, Character> mode_switch_map_;
 };

@@ -53,9 +53,17 @@ abort:
   static const int BUF_LEN = 1024;
   char buffer[BUF_LEN];
 
-  bool alt = (GetAsyncKeyState(VK_MENU) & 0x80) != 0;
-  bool ctrl = (GetAsyncKeyState(VK_CONTROL) & 0x80) != 0;
-  bool shift = (GetAsyncKeyState(VK_SHIFT) & 0x80) != 0;
+  switch (key_info->vkCode) {
+    case VK_LMENU:
+      lalt = wParam == WM_KEYDOWN;
+      break;
+    case VK_LCONTROL:
+      lctrl = wParam == WM_KEYDOWN;
+      break;
+    case VK_LSHIFT:
+      lshift = wParam == WM_KEYDOWN;
+      break;
+  }
 
   HWND foreground_hwnd = GetForegroundWindow();
   std::string foreground_win_class;
@@ -107,36 +115,37 @@ abort:
   }
 
   switch (key_info->vkCode) {
-    case VK_CAPITAL:
-      switch (wParam) {
-        case WM_KEYDOWN:
-          // this guard is to prevent key repeat from resetting the time
-          if (!caps_.down) {
-            caps_.down_time = GetTickCount64();
-            caps_.abort = false;
-            caps_.down = true;
-          }
+  case VK_CAPITAL: {
+	  switch (wParam) {
+	  case WM_KEYDOWN:
+		  // this guard is to prevent key repeat from resetting the time
+		  if (!caps_.down) {
+			  caps_.down_time = GetTickCount64();
+			  caps_.abort = false;
+			  caps_.down = true;
+		  }
 
-          InjectKey(VK_LCONTROL, false);
-          break;
-        case WM_KEYUP:
-          InjectKey(VK_LCONTROL, true);
+		  InjectKey(VK_LCONTROL, false);
+		  break;
+	  case WM_KEYUP:
+		  InjectKey(VK_LCONTROL, true);
 
-          auto current_tick = GetTickCount64();
-          auto delta = current_tick - caps_.down_time;
-          bool in_group = ctrl_tap_esc_.count(foreground_win_class) > 0;
-          if (delta < TIMEOUT && !caps_.abort && in_group) {
-            InjectKey(VK_ESCAPE, false);
-            InjectKey(VK_ESCAPE, true);
-          }
-          caps_.down = false;
-          break;
-      }
+		  auto current_tick = GetTickCount64();
+		  auto delta = current_tick - caps_.down_time;
+		  bool in_group = ctrl_tap_esc_.count(foreground_win_class) > 0;
+		  if (delta < TIMEOUT && !caps_.abort && in_group) {
+			  InjectKey(VK_ESCAPE, false);
+			  InjectKey(VK_ESCAPE, true);
+		  }
+		  caps_.down = false;
+		  break;
+	  }
 
-      // always swallow CAPS LOCK to prevent it from turning on
-      return 1;
+	  // always swallow CAPS LOCK to prevent it from turning on
+	  return 1;
 
-      break;
+	  break;
+    }
     case VK_RETURN: {
       switch (wParam) {
         case WM_KEYDOWN:
@@ -215,28 +224,27 @@ abort:
       break;
     }
     case VK_F9: {
-      if (wParam == WM_KEYDOWN && ctrl && shift) {
+      if (wParam == WM_KEYDOWN && lctrl && lshift) {
         auto orig_style = orig_hwnd_styles_.find(foreground_hwnd);
         if (orig_style == orig_hwnd_styles_.end()) {
           LONG style = GetWindowLong(foreground_hwnd, GWL_STYLE);
           orig_hwnd_styles_[foreground_hwnd] = style;
-          style &= ~WS_CAPTION;
-          style &= ~WS_BORDER;
-          style &= ~WS_DLGFRAME;
-          style &= ~WS_SIZEBOX;
+          style &= ~WS_OVERLAPPEDWINDOW;
           SetWindowLong(foreground_hwnd, GWL_STYLE, style);
         } else {
           LONG style = orig_style->second;
           SetWindowLong(foreground_hwnd, GWL_STYLE, style);
           orig_hwnd_styles_.erase(foreground_hwnd);
         }
+        InvalidateRect(foreground_hwnd, NULL, true);
+        UpdateWindow(foreground_hwnd);
 
         return 1;
       }
       break;
     }
     case VK_F12: {
-      if (wParam == WM_KEYDOWN && ctrl && shift) {
+      if (wParam == WM_KEYDOWN && lctrl && lshift) {
         SetWindowPos(foreground_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
       }
       break;
@@ -249,7 +257,10 @@ abort:
 
 KeyRemapper::KeyRemapper(HMODULE dll_module)
     : dll_module_(dll_module),
-      mode_switch_(false)
+      mode_switch_(false),
+      lalt(false),
+      lctrl(false),
+      lshift(false)
 {
   ctrl_tap_esc_ = {
     "Vim",
