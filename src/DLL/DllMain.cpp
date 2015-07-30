@@ -86,7 +86,7 @@ abort:
   {
     const Character& ch = mode_switch_map_[key_info->vkCode];
     if (ch.type == kUnicode && wParam == WM_KEYDOWN) {
-      wstring unicode_string = to_utf16(ch.str);
+      wstring unicode_string = to_utf16(ch.ch.cstr);
 
       INPUT input;
       input.type = INPUT_KEYBOARD;
@@ -98,9 +98,9 @@ abort:
       SendInput(1, &input, sizeof(INPUT));
     } else if (ch.type == kScanCode) {
       if (wParam == WM_KEYDOWN) {
-        InjectKey(ch.str[0], false);
+        InjectKey(ch.ch.vk, false);
       } else if (ch.type == kScanCode) {
-        InjectKey(ch.str[0], true);
+        InjectKey(ch.ch.vk, true);
       }
     }
     return 1;
@@ -299,40 +299,41 @@ KeyRemapper::KeyRemapper(HMODULE dll_module)
     scancode_of_vkey_[key] = MapVirtualKey(key, MAPVK_VK_TO_VSC);
   };
   
-  mode_switch_map_[VK_OEM_3] = {"0", kUnicode};
-  mode_switch_map_['1']      = {"!", kUnicode};
-  mode_switch_map_['2']      = {"@", kUnicode};
-  mode_switch_map_['3']      = {"#", kUnicode};
-  mode_switch_map_['4']      = {"$", kUnicode};
-  mode_switch_map_['5']      = {"%", kUnicode};
-  mode_switch_map_['6']      = {"^", kUnicode};
-  mode_switch_map_['7']      = {"&", kUnicode};
-  mode_switch_map_['8']      = {"*", kUnicode};
-  mode_switch_map_['Q']      = {"θ", kUnicode};
-  mode_switch_map_['W']      = {"\\", kUnicode};
-  mode_switch_map_['E']      = {"=", kUnicode};
-  mode_switch_map_['R']      = {"ρ", kUnicode};
-  mode_switch_map_['T']      = {"~", kUnicode};
-  mode_switch_map_['Y']      = {"υ", kUnicode};
-  mode_switch_map_['U']      = {"ψ", kUnicode};
-  mode_switch_map_['I']      = {string() + (char)VK_TAB, kScanCode};
-  mode_switch_map_['O']      = {string() + (char)VK_DELETE, kScanCode};
-  mode_switch_map_['P']      = {"π", kUnicode};
-  mode_switch_map_['A']      = {"-", kUnicode};
-  mode_switch_map_['S']      = {"_", kUnicode};
-  mode_switch_map_['D']      = {":", kUnicode};
-  mode_switch_map_['F']      = {"φ", kUnicode};
-  mode_switch_map_['G']      = {">", kUnicode};
-  mode_switch_map_['H']      = {"η", kUnicode};
-  mode_switch_map_['J']      = {";", kUnicode};
-  mode_switch_map_['L']      = {"<", kUnicode};
-  mode_switch_map_['Z']      = {"+", kUnicode};
-  mode_switch_map_['X']      = {"χ", kUnicode};
-  mode_switch_map_['C']      = {"{", kUnicode};
-  mode_switch_map_['V']      = {string() + (char)VK_RETURN, kScanCode};
-  mode_switch_map_['B']      = {"β", kUnicode};
-  mode_switch_map_['N']      = {"ν", kUnicode};
-  mode_switch_map_['M']      = {"μ", kUnicode};
+  // tilde character '`'
+  mode_switch_map_[VK_OEM_3] = {"0"};
+  mode_switch_map_['1']      = {"!"};
+  mode_switch_map_['2']      = {"@"};
+  mode_switch_map_['3']      = {"#"};
+  mode_switch_map_['4']      = {"$"};
+  mode_switch_map_['5']      = {"%"};
+  mode_switch_map_['6']      = {"^"};
+  mode_switch_map_['7']      = {"&"};
+  mode_switch_map_['8']      = {"*"};
+  mode_switch_map_['Q']      = {"θ"};
+  mode_switch_map_['W']      = {VK_OEM_5};
+  mode_switch_map_['E']      = {"="};
+  mode_switch_map_['R']      = {"ρ"};
+  mode_switch_map_['T']      = {"~"};
+  mode_switch_map_['Y']      = {"υ"};
+  mode_switch_map_['U']      = {"ψ"};
+  mode_switch_map_['I']      = {VK_TAB};
+  mode_switch_map_['O']      = {VK_BACK};
+  mode_switch_map_['P']      = {"π"};
+  mode_switch_map_['A']      = {"-"};
+  mode_switch_map_['S']      = {"_"};
+  mode_switch_map_['D']      = {":"};
+  mode_switch_map_['F']      = {"φ"};
+  mode_switch_map_['G']      = {">"};
+  mode_switch_map_['H']      = {"η"};
+  mode_switch_map_['J']      = {";"};
+  mode_switch_map_['L']      = {"<"};
+  mode_switch_map_['Z']      = {"+"};
+  mode_switch_map_['X']      = {"χ"};
+  mode_switch_map_['C']      = {"σ"};
+  mode_switch_map_['V']      = {VK_RETURN};
+  mode_switch_map_['B']      = {"β"};
+  mode_switch_map_['N']      = {"ν"};
+  mode_switch_map_['M']      = {"μ"};
 }
 
 static LRESULT CALLBACK

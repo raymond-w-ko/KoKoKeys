@@ -17,8 +17,27 @@ class KeyRemapper {
     kUnicode,
   };
   struct Character {
-    std::string str;
     CharacterType type;
+
+    union CHAR {
+      const char* cstr;
+      WORD vk;
+    } ch;
+
+    Character() {
+      this->type = kScanCode;
+      this->ch.vk = VK_SPACE;
+    }
+
+    Character(const char* unicode_char) {
+      this->type = kUnicode;
+      this->ch.cstr = unicode_char;
+    }
+
+    Character(WORD vk) {
+      this->type = kScanCode;
+      this->ch.vk = vk;
+    }
   };
 
   void InjectKey(WORD virtual_key_code, bool up);
