@@ -6,7 +6,6 @@ using namespace std;
 
 static KeyRemapper* sInstance = NULL;
 static const int TIMEOUT = 333;
-static bool toggle_space_back = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Utility Functions
@@ -118,33 +117,32 @@ abort:
   switch (key_info->vkCode) {
   case VK_CAPITAL: {
 	  switch (wParam) {
-	  case WM_KEYDOWN:
-		  // this guard is to prevent key repeat from resetting the time
-		  if (!caps_.down) {
-			  caps_.down_time = GetTickCount64();
-			  caps_.abort = false;
-			  caps_.down = true;
-		  }
+      case WM_KEYDOWN:
+        // this guard is to prevent key repeat from resetting the time
+        if (!caps_.down) {
+          caps_.down_time = GetTickCount64();
+          caps_.abort = false;
+          caps_.down = true;
+        }
 
-		  InjectKey(VK_LCONTROL, false);
-		  break;
-	  case WM_KEYUP:
-		  InjectKey(VK_LCONTROL, true);
+        InjectKey(VK_LCONTROL, false);
+        break;
+      case WM_KEYUP:
+        InjectKey(VK_LCONTROL, true);
 
-		  auto current_tick = GetTickCount64();
-		  auto delta = current_tick - caps_.down_time;
-		  bool in_group = ctrl_tap_esc_.count(foreground_win_class) > 0;
-		  if (delta < TIMEOUT && !caps_.abort && in_group) {
-			  InjectKey(VK_ESCAPE, false);
-			  InjectKey(VK_ESCAPE, true);
-		  }
-		  caps_.down = false;
-		  break;
-	  }
+        auto current_tick = GetTickCount64();
+        auto delta = current_tick - caps_.down_time;
+        bool in_group = ctrl_tap_esc_.count(foreground_win_class) > 0;
+        if (delta < TIMEOUT && !caps_.abort && in_group) {
+          InjectKey(VK_ESCAPE, false);
+          InjectKey(VK_ESCAPE, true);
+        }
+        caps_.down = false;
+        break;
+    }
 
-	  // always swallow CAPS LOCK to prevent it from turning on
-	  return 1;
-
+    // always swallow CAPS LOCK to prevent it from turning on
+    return 1;
 	  break;
     }
     /*
@@ -206,7 +204,6 @@ abort:
     }
 	  */
     case VK_OEM_1: {
-      // always eat ; since it is the mode switch key
       switch (wParam) {
         case WM_KEYDOWN:
           mode_switch_ = true;
@@ -215,17 +212,11 @@ abort:
           mode_switch_ = false;
           break;
       }
+      // always eat ';' since it is the mode switch key
       return 1;
       break;
     }
-    case VK_ESCAPE: {
-      if (foreground_win_class == "Sy_ALIVE3_Resource" ||
-          foreground_win_class == "Sy_ALIVE4_Resource") {
-        PostMessage(foreground_hwnd, WM_QUIT, 0, 0);
-        return 1;
-      }
-      break;
-    }
+    // forcing windows borderless or full screen
     case VK_F9: {
       if (wParam == WM_KEYDOWN && lctrl && lshift) {
         auto orig_style = orig_hwnd_styles_.find(foreground_hwnd);
@@ -249,38 +240,8 @@ abort:
     case VK_F12: {
       if (wParam == WM_KEYDOWN && lctrl && lshift) {
         SetWindowPos(foreground_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
+        return 1;
       }
-      break;
-    }
-    case VK_END: {
-      if (wParam != WM_KEYDOWN) break;
-
-      toggle_space_back = !toggle_space_back;
-      return 1;
-      break;
-    }
-    case VK_BACK: {
-      bool up = wParam == WM_KEYDOWN ? false : true;
-      WORD key;
-      if (toggle_space_back) {
-        key = VK_SPACE;
-      } else {
-        break;
-      }
-      InjectKey(key, up);
-      return 1;
-      break;
-    }
-    case VK_SPACE: {
-      bool up = wParam == WM_KEYDOWN ? false : true;
-      WORD key;
-      if (toggle_space_back) {
-        key = VK_BACK;
-      } else {
-        break;
-      }
-      InjectKey(key, up);
-      return 1;
       break;
     }
   }
@@ -383,6 +344,7 @@ KeyRemapper::KeyRemapper()
   mode_switch_map_['G']      = {">"};
   mode_switch_map_['H']      = {"η"};
   mode_switch_map_['J']      = {";"};
+  mode_switch_map_['K']      = {"κ"};
   mode_switch_map_['L']      = {"<"};
   mode_switch_map_['Z']      = {"+"};
   mode_switch_map_['X']      = {"χ"};
