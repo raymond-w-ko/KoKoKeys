@@ -1,10 +1,6 @@
-Debug/
-ipch/
-Release/
-*.sdf
-*.suo
-*.opensdf
-KoKoKeys32/Debug/
-KoKoKeys32/Release/
-KoKoKeysInjector32/Debug/
-KoKoKeysInjector32/Release/
+# VS files
+/.vs/
+
+# build
+/x64/
+/Win32/

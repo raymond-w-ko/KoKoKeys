@@ -1,11 +1,12 @@
 // dllmain.cpp : Defines the entry point for the DLL application.
 #include "stdafx.h"
-#include "DllMain.h"
+#include "KeyRemapper.h"
 
 using namespace std;
 
 static KeyRemapper* sInstance = NULL;
 static const int TIMEOUT = 333;
+static bool toggle_space_back = false;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Utility Functions
@@ -146,6 +147,7 @@ abort:
 
 	  break;
     }
+    /*
     case VK_RETURN: {
       switch (wParam) {
         case WM_KEYDOWN:
@@ -175,7 +177,8 @@ abort:
 
       break;
     }
-	/*
+    */
+    /*
     case VK_LSHIFT: {
       if (shift_key_underscore_blacklist_.count(foreground_win_class) > 0)
         break;
@@ -201,7 +204,7 @@ abort:
       }
       break;
     }
-	*/
+	  */
     case VK_OEM_1: {
       // always eat ; since it is the mode switch key
       switch (wParam) {
@@ -249,19 +252,62 @@ abort:
       }
       break;
     }
+    case VK_END: {
+      if (wParam != WM_KEYDOWN) break;
+
+      toggle_space_back = !toggle_space_back;
+      return 1;
+      break;
+    }
+    case VK_BACK: {
+      bool up = wParam == WM_KEYDOWN ? false : true;
+      WORD key;
+      if (toggle_space_back) {
+        key = VK_SPACE;
+      } else {
+        break;
+      }
+      InjectKey(key, up);
+      return 1;
+      break;
+    }
+    case VK_SPACE: {
+      bool up = wParam == WM_KEYDOWN ? false : true;
+      WORD key;
+      if (toggle_space_back) {
+        key = VK_BACK;
+      } else {
+        break;
+      }
+      InjectKey(key, up);
+      return 1;
+      break;
+    }
   }
 
   static const int ignored = 0;
   return CallNextHookEx(ignored, code, wParam, lParam);
 }
 
-KeyRemapper::KeyRemapper(HMODULE dll_module)
-    : dll_module_(dll_module),
-      mode_switch_(false),
+static LRESULT CALLBACK
+LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lParam)
+{
+  if (!sInstance) {
+    static const HHOOK ignored = 0;
+    return CallNextHookEx(ignored, code, wParam, lParam);
+  } else {
+    return sInstance->LowLevelKeyboardProc(code, wParam, lParam);
+  }
+}
+
+KeyRemapper::KeyRemapper()
+    : mode_switch_(false),
       lalt(false),
       lctrl(false),
       lshift(false)
 {
+  sInstance = this;
+  
   ctrl_tap_esc_ = {
     "Vim",
     "mintty",
@@ -345,49 +391,19 @@ KeyRemapper::KeyRemapper(HMODULE dll_module)
   mode_switch_map_['B']      = {"β"};
   mode_switch_map_['N']      = {"ν"};
   mode_switch_map_['M']      = {"μ"};
+  
+  this->install_hook();
 }
 
-static LRESULT CALLBACK
-LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lParam)
-{
-  if (!sInstance) {
-    static const HHOOK ignored = 0;
-    return CallNextHookEx(ignored, code, wParam, lParam);
-  } else {
-    return sInstance->LowLevelKeyboardProc(code, wParam, lParam);
-  }
+void KeyRemapper::install_hook(void) {
+  mHookHandle = SetWindowsHookEx(WH_KEYBOARD_LL, ::LowLevelKeyboardProc,
+                                 NULL, 0);
 }
 
-HHOOK sHook = NULL;
-
-KOKOKEYSDLL_API int install(void) {
-  sHook = SetWindowsHookEx(WH_KEYBOARD_LL, LowLevelKeyboardProc,
-                           sInstance->dll_module_, 0);
-  return sHook != NULL;
+KeyRemapper::~KeyRemapper() {
+  this->uninstall_hook();
 }
 
-KOKOKEYSDLL_API void uninstall(void) {
-  if (sHook) {
-    UnhookWindowsHookEx(sHook);
-    sHook = NULL;
-  }
-}
-
-BOOL APIENTRY DllMain(HMODULE hModule,
-                      DWORD  ul_reason_for_call,
-                      LPVOID) {
-  if (!sInstance)
-    sInstance = new KeyRemapper(hModule);
-
-  switch (ul_reason_for_call) {
-    case DLL_PROCESS_ATTACH:
-      break;
-    case DLL_THREAD_ATTACH:
-      break;
-    case DLL_THREAD_DETACH:
-      break;
-    case DLL_PROCESS_DETACH:
-      break;
-  }
-  return TRUE;
+void KeyRemapper::uninstall_hook(void) {
+  UnhookWindowsHookEx(mHookHandle);
 }
