@@ -65,14 +65,20 @@ abort:
       break;
   }
 
+  int current_screen_height = GetSystemMetrics(SM_CYSCREEN);
   HWND foreground_hwnd = GetForegroundWindow();
   std::string foreground_win_class;
   std::string foreground_win_title;
+  RECT foreground_rect = { 0 };
+  bool is_fullscreen = false;
   if (foreground_hwnd) {
     GetClassNameA(foreground_hwnd, buffer, BUF_LEN);
     foreground_win_class = buffer;
     GetWindowTextA(foreground_hwnd, buffer, BUF_LEN);
     foreground_win_title = buffer;
+    GetWindowRect(foreground_hwnd, &foreground_rect);
+    int h = foreground_rect.bottom - foreground_rect.top;
+    is_fullscreen = current_screen_height == h;
   }
 
   for (auto title : title_blacklist_) {
@@ -204,13 +210,24 @@ abort:
     }
 	  */
     case VK_OEM_1: {
-      switch (wParam) {
+      if (is_fullscreen) {
+        switch (wParam) {
         case WM_KEYDOWN:
-          mode_switch_ = true;
+          InjectKey(VK_SPACE, false);
           break;
         case WM_KEYUP:
-          mode_switch_ = false;
+          InjectKey(VK_SPACE, true);
           break;
+        }
+      } else {
+        switch (wParam) {
+          case WM_KEYDOWN:
+            mode_switch_ = true;
+            break;
+          case WM_KEYUP:
+            mode_switch_ = false;
+            break;
+        }
       }
       // always eat ';' since it is the mode switch key
       return 1;
