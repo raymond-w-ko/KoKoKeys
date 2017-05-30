@@ -70,15 +70,25 @@ abort:
   std::string foreground_win_class;
   std::string foreground_win_title;
   RECT foreground_rect = { 0 };
-  bool is_fullscreen = false;
+  bool is_game = false;
   if (foreground_hwnd) {
     GetClassNameA(foreground_hwnd, buffer, BUF_LEN);
     foreground_win_class = buffer;
     GetWindowTextA(foreground_hwnd, buffer, BUF_LEN);
     foreground_win_title = buffer;
+
     GetWindowRect(foreground_hwnd, &foreground_rect);
     int h = foreground_rect.bottom - foreground_rect.top;
-    is_fullscreen = current_screen_height == h;
+    if (current_screen_height == h) {
+      is_game = true;
+    }
+
+    {
+      std::string needle = "Prismata";
+      if (foreground_win_title.substr(0, needle.size()) == needle) {
+        is_game = true;
+      }
+    }
   }
 
   for (auto title : title_blacklist_) {
@@ -124,6 +134,11 @@ abort:
   case VK_CAPITAL: {
 	  switch (wParam) {
       case WM_KEYDOWN:
+        if (is_game) {
+          InjectKey(VK_OEM_1, false);
+          return 1;
+        }
+
         // this guard is to prevent key repeat from resetting the time
         if (!caps_.down) {
           caps_.down_time = GetTickCount64();
@@ -134,6 +149,11 @@ abort:
         InjectKey(VK_LCONTROL, false);
         break;
       case WM_KEYUP:
+        if (is_game) {
+          InjectKey(VK_OEM_1, true);
+          return 1;
+        }
+
         InjectKey(VK_LCONTROL, true);
 
         auto current_tick = GetTickCount64();
@@ -210,7 +230,7 @@ abort:
     }
 	  */
     case VK_OEM_1: {
-      if (is_fullscreen) {
+      if (is_game) {
         switch (wParam) {
         case WM_KEYDOWN:
           InjectKey(VK_SPACE, false);
@@ -233,6 +253,16 @@ abort:
       return 1;
       break;
     }
+    case VK_F8: {
+      if (wParam == WM_KEYDOWN && lctrl && lshift) {
+        // PS Vita resolution
+        int x = 1920 / 2 - 960 / 2;
+        int y = 1080 / 2 - 544 / 2;
+        SetWindowPos(foreground_hwnd, HWND_TOP, x, y, 960, 544, SWP_SHOWWINDOW);
+        return 1;
+      }
+      break;
+    }
     // forcing windows borderless or full screen
     case VK_F9: {
       if (wParam == WM_KEYDOWN && lctrl && lshift) {
@@ -240,7 +270,7 @@ abort:
         if (orig_style == orig_hwnd_styles_.end()) {
           LONG style = GetWindowLong(foreground_hwnd, GWL_STYLE);
           orig_hwnd_styles_[foreground_hwnd] = style;
-          style &= ~WS_OVERLAPPEDWINDOW;
+          style = WS_POPUP;
           SetWindowLong(foreground_hwnd, GWL_STYLE, style);
         } else {
           LONG style = orig_style->second;
