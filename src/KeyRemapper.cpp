@@ -38,14 +38,14 @@ std::wstring to_utf16(std::string utf8_string) {
 ///////////////////////////////////////////////////////////////////////////////
 
 LRESULT KeyRemapper::LowLevelKeyboardProc(
-    int code, WPARAM wParam, LPARAM lParam)
+  int code, WPARAM wParam, LPARAM lParam)
 {
   const KBDLLHOOKSTRUCT* key_info = (const KBDLLHOOKSTRUCT*)lParam;
 
   // specified by Win32 documentation that you must do this if code is < 0
   // also skip injected keys, otherwise we can get a infinite loop
   if (code < 0 || (key_info->flags & LLKHF_INJECTED)) {
-abort:
+  abort:
     static const HHOOK ignored = 0;
     return CallNextHookEx(ignored, code, wParam, lParam);
   }
@@ -54,15 +54,15 @@ abort:
   char buffer[BUF_LEN];
 
   switch (key_info->vkCode) {
-    case VK_LMENU:
-      lalt = wParam == WM_KEYDOWN;
-      break;
-    case VK_LCONTROL:
-      lctrl = wParam == WM_KEYDOWN;
-      break;
-    case VK_LSHIFT:
-      lshift = wParam == WM_KEYDOWN;
-      break;
+  case VK_LMENU:
+    lalt = wParam == WM_KEYDOWN;
+    break;
+  case VK_LCONTROL:
+    lctrl = wParam == WM_KEYDOWN;
+    break;
+  case VK_LSHIFT:
+    lshift = wParam == WM_KEYDOWN;
+    break;
   }
 
   int current_screen_height = GetSystemMetrics(SM_CYSCREEN);
@@ -120,10 +120,12 @@ abort:
       input.ki.time = 0;
       input.ki.dwExtraInfo = 0;
       SendInput(1, &input, sizeof(INPUT));
-    } else if (ch.type == kScanCode) {
+    }
+    else if (ch.type == kScanCode) {
       if (wParam == WM_KEYDOWN) {
         InjectKey(ch.ch.vk, false);
-      } else if (ch.type == kScanCode) {
+      }
+      else if (ch.type == kScanCode) {
         InjectKey(ch.ch.vk, true);
       }
     }
@@ -132,165 +134,127 @@ abort:
 
   switch (key_info->vkCode) {
   case VK_CAPITAL: {
-	  switch (wParam) {
-      case WM_KEYDOWN:
-        if (is_game) {
-          InjectKey(VK_OEM_1, false);
-          return 1;
-        }
+    switch (wParam) {
+    case WM_KEYDOWN:
+      if (is_game) {
+        InjectKey(VK_OEM_1, false);
+        return 1;
+      }
 
-        // this guard is to prevent key repeat from resetting the time
-        if (!caps_.down) {
-          caps_.down_time = GetTickCount64();
-          caps_.abort = false;
-          caps_.down = true;
-        }
+      // this guard is to prevent key repeat from resetting the time
+      if (!caps_.down) {
+        caps_.down_time = GetTickCount64();
+        caps_.abort = false;
+        caps_.down = true;
+      }
 
-        InjectKey(VK_LCONTROL, false);
-        break;
-      case WM_KEYUP:
-        if (is_game) {
-          InjectKey(VK_OEM_1, true);
-          return 1;
-        }
+      InjectKey(VK_LCONTROL, false);
+      break;
+    case WM_KEYUP:
+      if (is_game) {
+        InjectKey(VK_OEM_1, true);
+        return 1;
+      }
 
-        InjectKey(VK_LCONTROL, true);
+      InjectKey(VK_LCONTROL, true);
 
-        auto current_tick = GetTickCount64();
-        auto delta = current_tick - caps_.down_time;
-        bool in_group = ctrl_tap_esc_.count(foreground_win_class) > 0;
-        if (delta < TIMEOUT && !caps_.abort && in_group) {
-          InjectKey(VK_ESCAPE, false);
-          InjectKey(VK_ESCAPE, true);
-        }
-        caps_.down = false;
-        break;
+      auto current_tick = GetTickCount64();
+      auto delta = current_tick - caps_.down_time;
+      bool in_group = ctrl_tap_esc_.count(foreground_win_class) > 0;
+      if (delta < TIMEOUT && !caps_.abort && in_group) {
+        InjectKey(VK_ESCAPE, false);
+        InjectKey(VK_ESCAPE, true);
+      }
+      caps_.down = false;
+      break;
     }
 
     // always swallow CAPS LOCK to prevent it from turning on
     return 1;
-	  break;
+    break;
+  }
+  case VK_DELETE: {
+    if (is_game) {
+      break;
     }
-    /*
-    case VK_RETURN: {
-      switch (wParam) {
-        case WM_KEYDOWN:
-          if (!return_.down) {
-            return_.down_time = GetTickCount64();
-            return_.abort = false;
-            return_.down = true;
-          }
-
-          InjectKey(VK_RCONTROL, false);
-          break;
-        case WM_KEYUP:
-          InjectKey(VK_RCONTROL, true);
-
-          auto current_tick = GetTickCount64();
-          auto delta = current_tick - return_.down_time;
-          if (delta < 333 && !return_.abort) {
-            InjectKey(VK_RETURN, false);
-            InjectKey(VK_RETURN, true);
-          }
-          return_.down = false;
-          break;
-      }
-
-      // always swallow Enter
+    switch (wParam) {
+    case WM_KEYDOWN:
+      InjectKey(VK_SPACE, false);
+      break;
+    case WM_KEYUP:
+      InjectKey(VK_SPACE, true);
+      break;
+    }
+    return 1;
+    break;
+  }
+  case VK_SPACE: {
+    if (is_game) {
+      break;
+    }
+    switch (wParam) {
+    case WM_KEYDOWN:
+      mode_switch_ = true;
+      break;
+    case WM_KEYUP:
+      mode_switch_ = false;
+      break;
+    }
+    // always eat ';' since it is the mode switch key
+    return 1;
+  }
+  case VK_OEM_1: {
+    switch (wParam) {
+    case WM_KEYDOWN:
+      mode_switch_ = true;
+      break;
+    case WM_KEYUP:
+      mode_switch_ = false;
+      break;
+    }
+    // always eat ';' since it is the mode switch key
+    return 1;
+    break;
+  }
+  case VK_F8: {
+    if (wParam == WM_KEYDOWN && lctrl && lshift) {
+      // PS Vita resolution
+      int x = 1920 / 2 - 960 / 2;
+      int y = 1080 / 2 - 544 / 2;
+      SetWindowPos(foreground_hwnd, HWND_TOP, x, y, 960, 544, SWP_SHOWWINDOW);
       return 1;
-
-      break;
     }
-    */
-    /*
-    case VK_LSHIFT: {
-      if (shift_key_underscore_blacklist_.count(foreground_win_class) > 0)
-        break;
+    break;
+  }
+              // forcing windows borderless or full screen
+  case VK_F9: {
+    if (wParam == WM_KEYDOWN && lctrl && lshift) {
+      auto orig_style = orig_hwnd_styles_.find(foreground_hwnd);
+      if (orig_style == orig_hwnd_styles_.end()) {
+        LONG style = GetWindowLong(foreground_hwnd, GWL_STYLE);
+        orig_hwnd_styles_[foreground_hwnd] = style;
+        style = WS_POPUP;
+        SetWindowLong(foreground_hwnd, GWL_STYLE, style);
+      }
+      else {
+        LONG style = orig_style->second;
+        SetWindowLong(foreground_hwnd, GWL_STYLE, style);
+        orig_hwnd_styles_.erase(foreground_hwnd);
+      }
+      InvalidateRect(foreground_hwnd, NULL, true);
+      UpdateWindow(foreground_hwnd);
 
-      switch (wParam) {
-        case WM_KEYDOWN:
-          // this guard is to prevent key repeat from resetting the time
-          if (!lshift_.down) {
-            lshift_.down_time = GetTickCount64();
-            lshift_.abort = false;
-            lshift_.down = true;
-          }
-          break;
-        case WM_KEYUP:
-          ULONGLONG current_tick = GetTickCount64();
-          ULONGLONG delta = current_tick - lshift_.down_time;
-          if (delta < 333 && !lshift_.abort) {
-            InjectKey(VK_OEM_MINUS, false);
-            InjectKey(VK_OEM_MINUS, true);
-          }
-          lshift_.down = false;
-          break;
-      }
-      break;
-    }
-	  */
-    case VK_OEM_1: {
-      if (is_game) {
-        switch (wParam) {
-        case WM_KEYDOWN:
-          InjectKey(VK_SPACE, false);
-          break;
-        case WM_KEYUP:
-          InjectKey(VK_SPACE, true);
-          break;
-        }
-      } else {
-        switch (wParam) {
-          case WM_KEYDOWN:
-            mode_switch_ = true;
-            break;
-          case WM_KEYUP:
-            mode_switch_ = false;
-            break;
-        }
-      }
-      // always eat ';' since it is the mode switch key
       return 1;
-      break;
     }
-    case VK_F8: {
-      if (wParam == WM_KEYDOWN && lctrl && lshift) {
-        // PS Vita resolution
-        int x = 1920 / 2 - 960 / 2;
-        int y = 1080 / 2 - 544 / 2;
-        SetWindowPos(foreground_hwnd, HWND_TOP, x, y, 960, 544, SWP_SHOWWINDOW);
-        return 1;
-      }
-      break;
+    break;
+  }
+  case VK_F12: {
+    if (wParam == WM_KEYDOWN && lctrl && lshift) {
+      SetWindowPos(foreground_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
+      return 1;
     }
-    // forcing windows borderless or full screen
-    case VK_F9: {
-      if (wParam == WM_KEYDOWN && lctrl && lshift) {
-        auto orig_style = orig_hwnd_styles_.find(foreground_hwnd);
-        if (orig_style == orig_hwnd_styles_.end()) {
-          LONG style = GetWindowLong(foreground_hwnd, GWL_STYLE);
-          orig_hwnd_styles_[foreground_hwnd] = style;
-          style = WS_POPUP;
-          SetWindowLong(foreground_hwnd, GWL_STYLE, style);
-        } else {
-          LONG style = orig_style->second;
-          SetWindowLong(foreground_hwnd, GWL_STYLE, style);
-          orig_hwnd_styles_.erase(foreground_hwnd);
-        }
-        InvalidateRect(foreground_hwnd, NULL, true);
-        UpdateWindow(foreground_hwnd);
-
-        return 1;
-      }
-      break;
-    }
-    case VK_F12: {
-      if (wParam == WM_KEYDOWN && lctrl && lshift) {
-        SetWindowPos(foreground_hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE);
-        return 1;
-      }
-      break;
-    }
+    break;
+  }
   }
 
   static const int ignored = 0;
@@ -303,24 +267,25 @@ LowLevelKeyboardProc(int code, WPARAM wParam, LPARAM lParam)
   if (!sInstance) {
     static const HHOOK ignored = 0;
     return CallNextHookEx(ignored, code, wParam, lParam);
-  } else {
+  }
+  else {
     return sInstance->LowLevelKeyboardProc(code, wParam, lParam);
   }
 }
 
 KeyRemapper::KeyRemapper()
-    : mode_switch_(false),
-      lalt(false),
-      lctrl(false),
-      lshift(false)
+  : mode_switch_(false),
+  lalt(false),
+  lctrl(false),
+  lshift(false)
 {
   sInstance = this;
-  
+
   ctrl_tap_esc_ = {
     "Vim",
     "mintty",
     "SynergyDesk",
-    
+
     // VirtualBox
     "QWidget",
     "MozillaWindowClass",
@@ -363,50 +328,50 @@ KeyRemapper::KeyRemapper()
   for (UINT key : keys) {
     scancode_of_vkey_[key] = MapVirtualKey(key, MAPVK_VK_TO_VSC);
   };
-  
+
   // tilde character '`'
-  mode_switch_map_[VK_OEM_3] = {"0"};
-  mode_switch_map_['1']      = {"!"};
-  mode_switch_map_['2']      = {"@"};
-  mode_switch_map_['3']      = {"#"};
-  mode_switch_map_['4']      = {"$"};
-  mode_switch_map_['5']      = {"%"};
-  mode_switch_map_['6']      = {"^"};
-  mode_switch_map_['7']      = {"&"};
-  mode_switch_map_['8']      = {"*"};
-  mode_switch_map_['Q']      = {"θ"};
-  mode_switch_map_['W']      = {VK_OEM_5};
-  mode_switch_map_['E']      = {"="};
-  mode_switch_map_['R']      = {"ρ"};
-  mode_switch_map_['T']      = {"~"};
-  mode_switch_map_['Y']      = {"υ"};
-  mode_switch_map_['U']      = {"ψ"};
-  mode_switch_map_['I']      = {VK_TAB};
-  mode_switch_map_['O']      = {VK_BACK};
-  mode_switch_map_['P']      = {"π"};
-  mode_switch_map_['A']      = {"-"};
-  mode_switch_map_['S']      = {"_"};
-  mode_switch_map_['D']      = {":"};
-  mode_switch_map_['F']      = {"φ"};
-  mode_switch_map_['G']      = {">"};
-  mode_switch_map_['H']      = {"η"};
-  mode_switch_map_['J']      = {";"};
-  mode_switch_map_['K']      = {"κ"};
-  mode_switch_map_['L']      = {"<"};
-  mode_switch_map_['Z']      = {"+"};
-  mode_switch_map_['X']      = {"χ"};
-  mode_switch_map_['C']      = {"σ"};
-  mode_switch_map_['V']      = {VK_RETURN};
-  mode_switch_map_['B']      = {"β"};
-  mode_switch_map_['N']      = {"ν"};
-  mode_switch_map_['M']      = {"μ"};
-  
+  mode_switch_map_[VK_OEM_3] = { "0" };
+  mode_switch_map_['1'] = { "!" };
+  mode_switch_map_['2'] = { "@" };
+  mode_switch_map_['3'] = { "#" };
+  mode_switch_map_['4'] = { "$" };
+  mode_switch_map_['5'] = { "%" };
+  mode_switch_map_['6'] = { "^" };
+  mode_switch_map_['7'] = { "&" };
+  mode_switch_map_['8'] = { "*" };
+  mode_switch_map_['Q'] = { "θ" };
+  mode_switch_map_['W'] = { VK_OEM_5 };
+  mode_switch_map_['E'] = { "=" };
+  mode_switch_map_['R'] = { "ρ" };
+  mode_switch_map_['T'] = { "~" };
+  mode_switch_map_['Y'] = { "υ" };
+  mode_switch_map_['U'] = { "ψ" };
+  mode_switch_map_['I'] = { VK_TAB };
+  mode_switch_map_['O'] = { VK_BACK };
+  mode_switch_map_['P'] = { "π" };
+  mode_switch_map_['A'] = { "-" };
+  mode_switch_map_['S'] = { "_" };
+  mode_switch_map_['D'] = { ":" };
+  mode_switch_map_['F'] = { "φ" };
+  mode_switch_map_['G'] = { ">" };
+  mode_switch_map_['H'] = { "η" };
+  mode_switch_map_['J'] = { ";" };
+  mode_switch_map_['K'] = { "κ" };
+  mode_switch_map_['L'] = { "<" };
+  mode_switch_map_['Z'] = { "+" };
+  mode_switch_map_['X'] = { "χ" };
+  mode_switch_map_['C'] = { "σ" };
+  mode_switch_map_['V'] = { VK_RETURN };
+  mode_switch_map_['B'] = { "β" };
+  mode_switch_map_['N'] = { "ν" };
+  mode_switch_map_['M'] = { "μ" };
+
   this->install_hook();
 }
 
 void KeyRemapper::install_hook(void) {
   mHookHandle = SetWindowsHookEx(WH_KEYBOARD_LL, ::LowLevelKeyboardProc,
-                                 NULL, 0);
+    NULL, 0);
 }
 
 KeyRemapper::~KeyRemapper() {
