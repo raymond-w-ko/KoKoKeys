@@ -188,21 +188,6 @@ LRESULT KeyRemapper::LowLevelKeyboardProc(
     return 1;
     break;
   }
-  case VK_SPACE: {
-    if (is_game) {
-      break;
-    }
-    switch (wParam) {
-    case WM_KEYDOWN:
-      mode_switch_ = true;
-      break;
-    case WM_KEYUP:
-      mode_switch_ = false;
-      break;
-    }
-    // always eat ';' since it is the mode switch key
-    return 1;
-  }
   case VK_OEM_1: {
     switch (wParam) {
     case WM_KEYDOWN:
